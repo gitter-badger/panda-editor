@@ -1,9 +1,10 @@
 var fs = require('fs');
 var build = require('./js/build');
+var pjson = require('./package.json');
 
 panda = {
 	id: 'net.pandajs.app',
-	version: '0.1.0',
+	version: pjson.version,
 
 	init: function() {
 		this.projects = JSON.parse(localStorage.getItem(this.id + 'projects')) || [];
