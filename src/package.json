@@ -1,0 +1,16 @@
+{
+	"name": "Panda App",
+	"version": "0.1.0",
+	"main": "index.html",
+	"window": {
+		"width": 525,
+		"height": 580,
+		"min_width": 400,
+		"min_height": 400,
+		"resizable": false,
+		"toolbar": true
+	},
+	"dependencies": {
+	    "uglify-js": "~2.4.13"
+	}
+}
