@@ -32,6 +32,31 @@ panda = {
 		$('#' + action).show();
 	},
 
+	switchTab: function(name) {
+		var active = $('#nav a.active').attr('href');
+		if (active === name) return;
+
+		$('#' + active).hide();
+		$('#nav a.active').removeClass('active');
+
+		var target = $('#nav a[href="' + name + '"]').addClass('active');
+		$('#' + name).show();
+	},
+
+	startGame: function() {
+		game.config.debug = {
+			enabled: true
+		};
+
+		var script = document.createElement('script');
+		script.type = 'text/javascript';
+		script.src = 'src/game/main.js';
+		script.onerror = function() {
+		    console.log('Error starting game');
+		};
+		document.getElementsByTagName('head')[0].appendChild(script);
+	},
+
 	buttonClick: function(path, event) {
 		var action = $(event.currentTarget).attr('href');
 		if (this[action]) this[action](path);
@@ -127,6 +152,12 @@ panda = {
 		$(button).click(this.buttonClick.bind(this, path));
 		$(button).appendTo(content);
 
+		var button = document.createElement('button');
+		$(button).attr('href', 'runProject');
+		$(button).html('Run');
+		$(button).click(this.buttonClick.bind(this, path));
+		$(button).appendTo(content);
+
 		$(content).appendTo(div);
 
 		$(div).prependTo('#projects .content');
@@ -138,6 +169,27 @@ panda = {
 		};
 
 		return true;
+	},
+
+	runProject: function(path) {
+		game.config.debug = {
+			enabled: true
+		};
+
+		game.ready = function() {
+			panda.switchTab('browser');
+			game._start();
+		};
+
+		game.config.sourceFolder = path + '/src';
+
+		var script = document.createElement('script');
+		script.type = 'text/javascript';
+		script.src = path + '/src/game/main.js';
+		script.onerror = function() {
+		    console.log('Error starting game');
+		};
+		document.getElementsByTagName('head')[0].appendChild(script);
 	},
 
 	showProject: function(div) {
@@ -215,4 +267,6 @@ panda = {
 
 $(function() {
 	panda.init();
+	game.config.autoStart = false;
+	game._loadModules();
 });
