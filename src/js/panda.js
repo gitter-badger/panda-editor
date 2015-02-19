@@ -1,4 +1,5 @@
 var info = require('./package.json');
+var child = require('child_process');
 
 panda = {
 	id: 'net.pandajs.app',
@@ -35,10 +36,7 @@ panda = {
 		this.status('Building...');
 		$('#loader').show();
 
-		var path = require('path');
-		var child = require('child_process');
-		
-		var worker = child.fork('js/worker.js', { execPath: './node' });
+		var worker = child.fork('js/worker.js', { execPath: 'node' });
 		worker.on('message', this.buildComplete.bind(this));
 		worker.on('exit', this.buildComplete.bind(this));
 		worker.send(['build', dir]);
@@ -48,12 +46,8 @@ panda = {
 		this._building = false;
 		$('#loader').hide();
 		
-		if (err) {
-			panda.error(err);
-		}
-		else {
-			panda.success('Build completed');
-		}
+		if (err) this.error(err);
+		else this.success('Build completed');
 	},
 
 	openProject: function() {
@@ -150,24 +144,22 @@ panda = {
 		$('#loader').show();
 
 		this.status('Creating new project...');
-		this.openFolder(function(folder) {
-			pandajs.create(folder, false, function(err) {
-				if (err) {
-					panda.error(err);
-				}
-				else {
-					if (panda.initProject(folder)) {
-						panda.success('New project created');
-						panda.saveProjects();
-					}
-					else {
-						panda.error('Error initing project');
-					}
-				}
-				$('#loader').hide();
-				panda._creating = false;
-			});
-		});
+		this.openFolder(this.createProject.bind(this));
+	},
+
+	createProject: function(dir) {
+		var worker = child.fork('js/worker.js', { execPath: 'node' });
+		worker.on('message', this.projectCreated.bind(this));
+		worker.on('exit', this.projectCreated.bind(this));
+		worker.send(['create', dir]);
+	},
+
+	projectCreated: function(error) {
+		this._creating = false;
+		$('#loader').hide();
+
+		if (err) this.error(err);
+		else this.success('Project created');
 	},
 
 	saveProjects: function() {
