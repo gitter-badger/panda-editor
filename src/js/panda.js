@@ -1,18 +1,19 @@
 var fs = require('fs');
-var build = require('./js/build');
-var pjson = require('./package.json');
+var info = require('./package.json');
+var pandajs = require('pandajs');
 
 panda = {
 	id: 'net.pandajs.app',
-	version: pjson.version,
+	version: info.version,
+	projects: {},
 
 	init: function() {
-		this.projects = JSON.parse(localStorage.getItem(this.id + 'projects')) || [];
+		var projects = JSON.parse(localStorage.getItem(this.id + 'projects')) || [];
 		
 		$('#nav a').click(this.menuClick.bind(this));
 
-		for (var i = 0; i < this.projects.length; i++) {
-			this.initProject(this.projects[i].path);
+		for (var i = 0; i < projects.length; i++) {
+			this.initProject(projects[i].path);
 		}
 
 		this.status('Panda App ' + this.version);
@@ -40,18 +41,18 @@ panda = {
 	},
 
 	startBuilding: function(path) {
-		build(path, this.buildComplete.bind(this));
+		pandajs.build(path, false, this.buildComplete.bind(this));
 	},
 
-	buildComplete: function(err, output) {
+	buildComplete: function(err) {
 		this._building = false;
 		$('#loader').hide();
 		
 		if (err) {
-			panda.error(err);
+			panda.error('Error building project');
 		}
 		else {
-			panda.success(output);
+			panda.success('Build completed');
 		}
 	},
 
@@ -63,20 +64,35 @@ panda = {
 		input.click();
 	},
 
+	openFolder: function(callback) {
+		var input = document.createElement('input');
+		input.type = 'file';
+		input.nwdirectory = true;
+		input.onchange = function() {
+			callback(input.value);
+		};
+		input.click();
+	},
+
 	readProjectFolder: function(input) {
 		var path = input.value;
-		if (this.initProject(path)) {
+
+		if (this.projects[path]) {
+			this.error('Project already exists.');
+		}
+		else if (this.initProject(path)) {
 			this.newProject(path);
 			this.saveProjects();
 		}
 		else {
-			console.log('Invalid project folder: ' + path);
+			this.error('Invalid project folder');
 		}
 	},
 
 	initProject: function(path) {
 		delete global.pandaConfig;
 		try {
+			delete global.require.cache[path + '/src/game/config.js'];
 			require(path + '/src/game/config.js');
 		}
 		catch (e) {
@@ -88,32 +104,74 @@ panda = {
 		var name = config.name || 'Untitled';
 		var version = config.version || '0.0.0';
 
+		var div = document.createElement('div');
+
 		var header = document.createElement('h6');
 		$(header).html(name + ' ' + version);
-		$(header).appendTo('#wrapper .content');
+		$(header).appendTo(div);
 
-		var div = document.createElement('div');
-		$(div).addClass('box');
+		var content = document.createElement('div');
+		$(content).addClass('box');
 
 		var button = document.createElement('button');
 		$(button).attr('href', 'buildProject');
 		$(button).html('Build');
 		$(button).click(this.buttonClick.bind(this, path));
-		$(div).append(button);
+		$(button).appendTo(content);
 
+		var button = document.createElement('button');
+		$(button).attr('href', 'removeProject');
+		$(button).html('Remove');
+		$(button).click(this.buttonClick.bind(this, path));
+		$(button).appendTo(content);
+
+		$(content).appendTo(div);
 		$(div).appendTo('#wrapper .content');
+
+		this.projects[path] = {
+			div: div
+		};
 
 		return true;
 	},
 
-	newProject: function(path) {
-		this.projects.push({
-			path: path
+	removeProject: function(path) {
+		if (confirm('Are you sure?')) {
+			$(this.projects[path].div).remove();
+			delete this.projects[path];
+		}
+		this.saveProjects();
+	},
+
+	newProject: function() {
+		console.log('ok');
+		if (this._creating) return;
+		this._creating = true;
+
+		this.status('Creating new project...');
+		this.openFolder(function(folder) {
+			console.log(folder);
+			return;
+			pandajs.create(folder, false, function(err) {
+				if (err) {
+					panda.error('Error creating project');
+				}
+				else {
+					panda.success('New project created');
+				}
+			});
 		});
 	},
 
 	saveProjects: function() {
-		localStorage.setItem(this.id + 'projects', JSON.stringify(this.projects));
+		var projects = [];
+		for (var path in this.projects) {
+			projects.push({
+				path: path
+			});
+		}
+		
+		localStorage.setItem(this.id + 'projects', JSON.stringify(projects));
 	},
 
 	clearProjects: function() {

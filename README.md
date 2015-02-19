@@ -1,3 +1,3 @@
-## Panda.js App
+## Panda App
 
-Desktop application for Pandatool
+Desktop application for Panda.js CLI

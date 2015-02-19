@@ -1,5 +1,5 @@
 {
-	"name": "Panda App",
+	"name": "pandajs-app",
 	"version": "0.1.0",
 	"main": "index.html",
 	"window": {
@@ -8,7 +8,8 @@
 		"resizable": false
 	},
 	"dependencies": {
-	    "uglify-js": "~2.4.13"
+	    "uglify-js": "~2.4.13",
+	    "pandajs": "latest"
 	},
 	"platformOverrides": {
 		"win": {
