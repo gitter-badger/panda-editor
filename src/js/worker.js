@@ -7,7 +7,7 @@ process.on('message', function(data) {
 	if (!pandajs[command]) return process.send('Command not found');
 
 	pandajs[command](param, false, function(err) {
-		if (err) process.send('Error');
+		if (err) process.send(err);
 		else process.send(false);
 	});
 });

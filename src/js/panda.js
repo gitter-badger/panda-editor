@@ -51,11 +51,7 @@ panda = {
 	},
 
 	openProject: function() {
-		var input = document.createElement('input');
-		input.type = 'file';
-		input.nwdirectory = true;
-		input.onchange = this.readProjectFolder.bind(this, input);
-		input.click();
+		this.openFolder(this.addProject.bind(this));
 	},
 
 	openFolder: function(callback) {
@@ -68,18 +64,15 @@ panda = {
 		input.click();
 	},
 
-	readProjectFolder: function(input) {
-		var path = input.value;
-
-		if (this.projects[path]) {
+	addProject: function(dir) {
+		if (this.projects[dir]) {
 			this.error('Project already exists.');
 		}
-		else if (this.initProject(path)) {
-			this.newProject(path);
+		else if (this.initProject(dir)) {
 			this.saveProjects();
 		}
 		else {
-			this.error('Invalid project folder');
+			this.error('Invalid project folder.');
 		}
 	},
 
@@ -149,17 +142,21 @@ panda = {
 
 	createProject: function(dir) {
 		var worker = child.fork('js/worker.js', { execPath: 'node' });
-		worker.on('message', this.projectCreated.bind(this));
-		worker.on('exit', this.projectCreated.bind(this));
+		worker.on('message', this.projectCreated.bind(this, dir));
+		worker.on('exit', this.projectCreated.bind(this, dir));
 		worker.send(['create', dir]);
 	},
 
-	projectCreated: function(error) {
+	projectCreated: function(dir, err) {
 		this._creating = false;
 		$('#loader').hide();
 
 		if (err) this.error(err);
-		else this.success('Project created');
+		else {
+			this.success('Project created');
+			this.initProject(dir);
+			this.saveProjects();
+		}
 	},
 
 	saveProjects: function() {
