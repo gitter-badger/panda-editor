@@ -28,16 +28,20 @@ panda = {
 		if (this[action]) this[action](path);
 	},
 
-	buildProject: function(path) {
+	buildProject: function(dir) {
 		if (this._building) return;
 		this._building = true;
 
 		this.status('Building...');
 		$('#loader').show();
 
-		var worker = require('child_process').fork('js/worker.js', { execPath: 'node' });
+		var path = require('path');
+		var child = require('child_process');
+		
+		var worker = child.fork('js/worker.js', { execPath: './node' });
 		worker.on('message', this.buildComplete.bind(this));
-		worker.send(['build', path]);
+		worker.on('exit', this.buildComplete.bind(this));
+		worker.send(['build', dir]);
 	},
 
 	buildComplete: function(err) {

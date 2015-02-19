@@ -6,7 +6,8 @@ var nw = new NwBuilder({
     platforms: ['osx64', 'win32'],
     appName: 'Panda App',
     version: '0.11.5',
-    macIcns: './icons/panda.icns'
+    macIcns: './icons/panda.icns',
+    buildType: 'versioned'
 });
 
 nw.build(function(err) {
@@ -17,3 +18,6 @@ nw.build(function(err) {
 		console.log('Done');
 	}
 });
+
+// Copy /usr/local/bin/node to
+// OSX: Contents/Frameworks/node-webkit\ Helper.app/Contents/MacOS
