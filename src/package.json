@@ -1,25 +1,27 @@
 {
-	"name": "pandajs-app",
-	"version": "0.1.0",
-	"main": "index.html",
-	"window": {
-		"width": 525,
-		"height": 580,
-		"resizable": false
-	},
-	"dependencies": {
-	    "pandajs": "latest"
-	},
-	"platformOverrides": {
-		"win": {
-			"window": {
-				"toolbar": false
-			}
-		},
-		"osx": {
-			"window": {
-				"toolbar": false
-			}
-		}
-	}
+  "name": "panda.js-app",
+  "version": "0.1.0",
+  "main": "index.html",
+  "window": {
+    "width": 525,
+    "height": 580,
+    "min_width": 525,
+    "min_height": 580,
+    "resizable": true
+  },
+  "dependencies": {
+    "pandajs": "latest"
+  },
+  "platformOverrides": {
+    "win": {
+      "window": {
+        "toolbar": false
+      }
+    },
+    "osx": {
+      "window": {
+        "toolbar": false
+      }
+    }
+  }
 }

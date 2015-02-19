@@ -1,5 +1,5 @@
 var info = require('./package.json');
-var child = require('child_process');
+var fork = require('child_process').fork;
 
 panda = {
 	id: 'net.pandajs.app',
@@ -36,7 +36,7 @@ panda = {
 		this.status('Building...');
 		$('#loader').show();
 
-		var worker = child.fork('js/worker.js', { execPath: 'node' });
+		var worker = fork('js/worker.js', { execPath: './node' });
 		worker.on('message', this.buildComplete.bind(this));
 		worker.on('exit', this.buildComplete.bind(this));
 		worker.send(['build', dir]);
@@ -132,19 +132,24 @@ panda = {
 	},
 
 	newProject: function() {
+		var name = prompt('Project name:');
+		if (name) {
+			name = name.replace(/\s/g, ''); // Remove spaces
+			this.openFolder(this.createProject.bind(this, name));
+		}
+	},
+
+	createProject: function(name, dir) {
 		if (this._creating) return;
 		this._creating = true;
 		$('#loader').show();
 
 		this.status('Creating new project...');
-		this.openFolder(this.createProject.bind(this));
-	},
 
-	createProject: function(dir) {
-		var worker = child.fork('js/worker.js', { execPath: 'node' });
-		worker.on('message', this.projectCreated.bind(this, dir));
-		worker.on('exit', this.projectCreated.bind(this, dir));
-		worker.send(['create', dir]);
+		var worker = fork('js/worker.js', { execPath: './node' });
+		worker.on('message', this.projectCreated.bind(this, dir + '/' + name));
+		worker.on('exit', this.projectCreated.bind(this, ''));
+		worker.send(['create', dir, [name]]);
 	},
 
 	projectCreated: function(dir, err) {
