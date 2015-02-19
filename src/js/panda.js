@@ -7,21 +7,29 @@ panda = {
 	projects: {},
 
 	init: function() {
-		var projects = JSON.parse(localStorage.getItem(this.id + 'projects')) || [];
-		
 		$('#nav a').click(this.menuClick.bind(this));
 
+		var active = $('#nav a.active').attr('href');
+		$('#' + active).show();
+
+		var projects = JSON.parse(localStorage.getItem(this.id + 'projects')) || [];
 		for (var i = 0; i < projects.length; i++) {
 			this.initProject(projects[i].path);
 		}
-
-		this.status('Panda App ' + this.version);
 	},
 
 	menuClick: function(event) {
 		event.preventDefault();
 		var action = $(event.currentTarget).attr('href');
-		if (this[action]) this[action]();
+	
+		var active = $('#nav a.active').attr('href');
+		if (action === active) return;
+
+		$('#' + active).hide();
+		$('#nav a.active').removeClass('active');
+
+		$(event.currentTarget).addClass('active');
+		$('#' + action).show();
 	},
 
 	buttonClick: function(path, event) {
@@ -92,13 +100,20 @@ panda = {
 		var version = config.version || '0.0.0';
 
 		var div = document.createElement('div');
-
-		var header = document.createElement('h6');
-		$(header).html(name + ' ' + version);
+		$(div).addClass('project');
+		$(div).addClass('closed');
+		
+		var header = document.createElement('h2');
+		$(header).html(name);
+		var span = document.createElement('span');
+		$(span).addClass('version');
+		$(span).html(version).appendTo(header);
 		$(header).appendTo(div);
 
 		var content = document.createElement('div');
-		$(content).addClass('box');
+		$(content).addClass('info');
+
+		$(content).html('blabalblalba');
 
 		var button = document.createElement('button');
 		$(button).attr('href', 'buildProject');
@@ -114,13 +129,19 @@ panda = {
 
 		$(content).appendTo(div);
 
-		$(div).prependTo('#wrapper .content');
+		$(div).prependTo('#projects .content');
+
+		$(header).click(this.showProject.bind(this, div));
 
 		this.projects[path] = {
 			div: div
 		};
 
 		return true;
+	},
+
+	showProject: function(div) {
+		$(div).toggleClass('closed');
 	},
 
 	removeProject: function(path) {

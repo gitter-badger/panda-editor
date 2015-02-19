@@ -8,25 +8,32 @@
     <script type="text/javascript" src="js/jquery-2.1.3.min.js"></script>
     <script type="text/javascript" src="js/panda.js"></script>
 </head>
-<body>
-    <div id="loader"></div>
-    <div id="header">
-        <div class="wrapper">
-            <div id="nav">
-                <a href="newProject"><img src="img/icons/pencil.png"><span>New project</span></a>
-                <a href="openProject"><img src="img/icons/folder.png"><span>Open project</span></a>
+<body>    
+    <div id="nav">
+        <a href="new" class="active"><img src="img/icons/pencil.png"></a>
+        <a href="projects"><img src="img/icons/folder.png"></a>
+        <a href="newProject"><img src="img/icons/bolt.png"></a>
+        <a href="newProject"><img src="img/icons/calculator.png"></a>
+        <a href="settings"><img src="img/icons/gear.png"></a>
+    </div>
+
+    <div id="main">
+        <div id="new" class="tab">
+            <h1>New project</h1>
+            <div class="content">
+                Hello
+            </div>
+        </div>
+        <div id="projects" class="tab">
+            <h1>Projects</h1>
+            <div class="content"></div>
+        </div>
+        <div id="settings" class="tab">
+            <h1>Settings</h1>
+            <div class="content">
+                Put some settings stuff here!
             </div>
         </div>
     </div>
-
-    <div id="bg">
-        <div id="wrapper">
-            <h1>Projects</h1>
-            
-            <div class="content"></div>
-        </div>
-    </div>
-
-    <div id="footer"></div>
 </body>
 </html>

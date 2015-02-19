@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "main": "index.html",
   "window": {
-    "width": 525,
-    "height": 580,
-    "min_width": 525,
-    "min_height": 580,
+    "width": 446,
+    "height": 540,
+    "min_width": 446,
+    "min_height": 540,
     "resizable": true
   },
   "dependencies": {
