@@ -1,6 +1,4 @@
-var fs = require('fs');
 var info = require('./package.json');
-var pandajs = require('pandajs');
 
 panda = {
 	id: 'net.pandajs.app',
@@ -37,11 +35,9 @@ panda = {
 		this.status('Building...');
 		$('#loader').show();
 
-		setTimeout(this.startBuilding.bind(this, path), 200);
-	},
-
-	startBuilding: function(path) {
-		pandajs.build(path, false, this.buildComplete.bind(this));
+		var worker = require('child_process').fork('js/worker.js', { execPath: 'node' });
+		worker.on('message', this.buildComplete.bind(this));
+		worker.send(['build', path]);
 	},
 
 	buildComplete: function(err) {
@@ -49,7 +45,7 @@ panda = {
 		$('#loader').hide();
 		
 		if (err) {
-			panda.error('Error building project');
+			panda.error(err);
 		}
 		else {
 			panda.success('Build completed');
@@ -126,7 +122,8 @@ panda = {
 		$(button).appendTo(content);
 
 		$(content).appendTo(div);
-		$(div).appendTo('#wrapper .content');
+
+		$(div).prependTo('#wrapper .content');
 
 		this.projects[path] = {
 			div: div
@@ -144,21 +141,27 @@ panda = {
 	},
 
 	newProject: function() {
-		console.log('ok');
 		if (this._creating) return;
 		this._creating = true;
+		$('#loader').show();
 
 		this.status('Creating new project...');
 		this.openFolder(function(folder) {
-			console.log(folder);
-			return;
 			pandajs.create(folder, false, function(err) {
 				if (err) {
-					panda.error('Error creating project');
+					panda.error(err);
 				}
 				else {
-					panda.success('New project created');
+					if (panda.initProject(folder)) {
+						panda.success('New project created');
+						panda.saveProjects();
+					}
+					else {
+						panda.error('Error initing project');
+					}
 				}
+				$('#loader').hide();
+				panda._creating = false;
 			});
 		});
 	},
