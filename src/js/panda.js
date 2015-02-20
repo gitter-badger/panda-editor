@@ -1,13 +1,25 @@
 var info = require('./package.json');
 var fork = require('child_process').fork;
+var gui = require('nw.gui');
+var nodepath = require('path');
+var fs = require('fs');
+var clipboard = gui.Clipboard.get();
 
 panda = {
 	id: 'net.pandajs.app',
 	version: info.version,
 	projects: {},
+	config: {
+		editor: {
+			splitView: true,
+			theme: 'base16-dark'
+		}
+	},
+	browserVisible: false,
 
 	init: function() {
 		$('#nav a').click(this.menuClick.bind(this));
+		$('button').click(this.buttonClick.bind(this, false));
 
 		var active = $('#nav a.active').attr('href');
 		$('#' + active).show();
@@ -16,20 +28,51 @@ panda = {
 		for (var i = 0; i < projects.length; i++) {
 			this.initProject(projects[i].path);
 		}
+
+		game.config.autoStart = false;
+		// Load Panda.js engine
+		game._loadModules();
+
+		gui.Window.get().show();
+
+		window.addEventListener('resize', this.onResize.bind(this));
+		this.onResize();
+	},
+
+	onResize: function() {
+		var width = window.innerWidth - 54;
+		if (this.browserVisible) {
+			// var canvas = document.getElementById('canvas');
+			// var canvasWidth = canvas.clientWidth;
+			width = ~~(width / 2);
+			// width -= canvasWidth;
+
+			$('.tab').css('width', width + 'px');
+			// $('#browser').css('width', canvasWidth + 'px');
+		}
+		else {
+			$('.tab').css('width', width + 'px');
+		}
 	},
 
 	menuClick: function(event) {
 		event.preventDefault();
 		var action = $(event.currentTarget).attr('href');
 	
-		var active = $('#nav a.active').attr('href');
-		if (action === active) return;
+		if (action === 'browser') this.toggleBrowser();
+		else this.switchTab(action);
+	},
 
-		$('#' + active).hide();
-		$('#nav a.active').removeClass('active');
-
-		$(event.currentTarget).addClass('active');
-		$('#' + action).show();
+	toggleBrowser: function() {
+		this.browserVisible = !this.browserVisible;
+		if (this.browserVisible) {
+			$('#browser').show();
+		}
+		else {
+			$('#browser').hide();
+		}
+		this.startGame();
+		this.onResize();
 	},
 
 	switchTab: function(name) {
@@ -44,13 +87,31 @@ panda = {
 	},
 
 	startGame: function() {
-		game.config.debug = {
-			enabled: true
+		if (!this.currentProject) return;
+		if (this.gameStarted) return;
+		this.gameStarted = true;
+
+		require(this.currentProject + '/src/game/config.js');
+
+		game.config = global.pandaConfig;
+
+		// Force settings
+		game.config.system = game.config.system || {};
+		game.config.system.resize = false;
+		game.config.system.scale = false;
+		game.config.system.center = false;
+
+		game.config.mediaFolder = this.currentProject + '/media';
+		game.config.sourceFolder = this.currentProject + '/src';
+
+		game.ready = function() {
+			game.System.startScene = 'Title';
+			game._start();
 		};
 
 		var script = document.createElement('script');
 		script.type = 'text/javascript';
-		script.src = 'src/game/main.js';
+		script.src = this.currentProject + '/src/game/main.js';
 		script.onerror = function() {
 		    console.log('Error starting game');
 		};
@@ -58,6 +119,7 @@ panda = {
 	},
 
 	buttonClick: function(path, event) {
+		event.preventDefault();
 		var action = $(event.currentTarget).attr('href');
 		if (this[action]) this[action](path);
 	},
@@ -99,13 +161,14 @@ panda = {
 
 	addProject: function(dir) {
 		if (this.projects[dir]) {
-			this.error('Project already exists.');
+			console.log('Project already exists.');
 		}
 		else if (this.initProject(dir)) {
 			this.saveProjects();
+			console.log('Project added');
 		}
 		else {
-			this.error('Invalid project folder.');
+			console.log('Invalid project folder.');
 		}
 	},
 
@@ -138,7 +201,7 @@ panda = {
 		var content = document.createElement('div');
 		$(content).addClass('info');
 
-		$(content).html('blabalblalba');
+		// $(content).html('blabalblalba');
 
 		var button = document.createElement('button');
 		$(button).attr('href', 'buildProject');
@@ -153,8 +216,8 @@ panda = {
 		$(button).appendTo(content);
 
 		var button = document.createElement('button');
-		$(button).attr('href', 'runProject');
-		$(button).html('Run');
+		$(button).attr('href', 'editProject');
+		$(button).html('Edit');
 		$(button).click(this.buttonClick.bind(this, path));
 		$(button).appendTo(content);
 
@@ -171,25 +234,127 @@ panda = {
 		return true;
 	},
 
-	runProject: function(path) {
-		game.config.debug = {
-			enabled: true
-		};
+	editProject: function(path) {
+		this.switchTab('editor');
 
+		this.currentProject = path;
+
+		var file = nodepath.join(path + '/src/game/main.js');
+
+		this.currentFile = file;
+		this.currentModule = 'game.main';
+		
+		fs.readFile(file, {
+			encoding: 'utf-8'
+		}, function(err, data) {
+			var textarea = document.createElement('textarea');
+			$('#editor').append(textarea);
+
+			var editor = CodeMirror.fromTextArea(textarea, {
+				lineNumbers: true,
+				theme: panda.config.editor.theme,
+				mode: 'javascript',
+				indentUnit: 4,
+				value: data,
+				autofocus: true,
+				hint: CodeMirror.hint.javascript,
+				keyMap: 'sublime',
+				autoCloseBrackets: true
+			});
+			editor.setValue(data);
+			editor.setOption('extraKeys', {
+				'Shift-Cmd-R': function() {
+					// Restart game
+					panda.restartGame();
+				},
+				'Cmd-R': function() {
+					// Restart scene
+					panda.restartScene();
+				},
+				'Cmd-X': function(cm) {
+					// Cut
+					clipboard.set(cm.getSelection(), 'text');
+					cm.replaceSelection('');
+				},
+				'Cmd-C': function(cm) {
+					// Copy
+					clipboard.set(cm.getSelection(), 'text');
+				},
+				'Cmd-V': function(cm) {
+					// Paste
+					cm.replaceSelection(clipboard.get('text'));
+				},
+				'Cmd-S': function(cm) {
+					if (cm.doc.history.lastSaveTime === cm.doc.history.lastModTime) {
+						console.log('Nothing to save');
+						return;
+					}
+
+					cm.doc.history.lastSaveTime = cm.doc.history.lastModTime;
+					
+					console.log('Saving ' + panda.currentFile);
+					fs.writeFile(panda.currentFile, editor.getValue(), {
+						encoding: 'utf-8'
+					}, function(err) {
+						if (err) console.log('Error saving file');
+						else {
+							console.log('Saved');
+							panda.reloadModule('game.main');
+						}
+					});
+				}
+			});
+		});
+	},
+
+	restartScene: function() {
+		console.log('Restarting scene...');
+		if (game.scene) game.system.setScene(game.system.sceneName);
+	},
+
+	restartGame: function() {
+		console.log('Restarting game...');
+		if (game.scene) game.system.setScene(game.System.startScene);
+	},
+
+	reloadModule: function() {
+		console.log('Reloading module...');
 		game.ready = function() {
-			panda.switchTab('browser');
-			game._start();
+			if (this.assetQueue.length > 0 || this.audioQueue.length > 0) {
+				this._loader = new this.Loader(game.system.sceneName);
+				this._loader.start();
+			}
+			else {
+				panda.restartScene();
+			}
 		};
 
-		game.config.sourceFolder = path + '/src';
+		// Delete all classes in module
+		for (var i = 0; i < game.modules[this.currentModule].classes.length; i++) {
+			var className = game.modules[this.currentModule].classes[i];
+			delete game[className];
+			console.log('Deleted class ' + className);
+		}
 
+		// Delete module
+		delete game.modules[this.currentModule];
+
+		// Remove module script
+		if (this.currentModuleScript) {
+			document.getElementsByTagName('head')[0].removeChild(this.currentModuleScript);
+		}
+
+		// Reload module code
+		var path = this.currentModule.replace(/\./g, '/') + '.js?' + Date.now();
 		var script = document.createElement('script');
 		script.type = 'text/javascript';
-		script.src = path + '/src/game/main.js';
+		script.src = this.currentProject + '/src/' + path;
 		script.onerror = function() {
-		    console.log('Error starting game');
+		    console.log('Error loading module');
 		};
 		document.getElementsByTagName('head')[0].appendChild(script);
+
+		this.currentModuleScript = script;
 	},
 
 	showProject: function(div) {
@@ -210,6 +375,18 @@ panda = {
 			name = name.replace(/\s/g, ''); // Remove spaces
 			this.openFolder(this.createProject.bind(this, name));
 		}
+	},
+
+	loadProject: function() {
+		$('#welcome').hide();
+		$('#nav').show();
+		$('#main').show();
+
+		this.editProject('/Users/eemelikelokorpi/Sites/yle/peka_ostbricka');
+	},
+
+	saveProjectSettings: function() {
+		console.log('saveProjectSettings');
 	},
 
 	createProject: function(name, dir) {
@@ -250,23 +427,9 @@ panda = {
 
 	clearProjects: function() {
 		localStorage.setItem(this.id + 'projects', null);
-	},
-
-	success: function(msg) {
-		$('#footer').html(msg).css('background-color', 'green');
-	},
-
-	error: function(msg) {
-		$('#footer').html(msg).css('background-color', 'red');
-	},
-
-	status: function(msg) {
-		$('#footer').html(msg).css('background-color', 'black');
 	}
 };
 
 $(function() {
 	panda.init();
-	game.config.autoStart = false;
-	game._loadModules();
 });

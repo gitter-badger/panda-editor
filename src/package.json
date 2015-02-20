@@ -5,7 +5,10 @@
   "window": {
     "width": 1334,
     "height": 756,
-    "resizable": true
+    "min_width": 740,
+    "min_height": 378,
+    "resizable": true,
+    "show": false
   },
   "dependencies": {
     "pandajs": "latest"
