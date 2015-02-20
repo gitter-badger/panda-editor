@@ -1,7 +1,6 @@
 var info = require('./package.json');
 var fork = require('child_process').fork;
 var gui = require('nw.gui');
-var nodepath = require('path');
 var fs = require('fs');
 var clipboard = gui.Clipboard.get();
 
@@ -21,25 +20,16 @@ panda = {
 		$('#nav a').click(this.menuClick.bind(this));
 		$('button').click(this.buttonClick.bind(this, false));
 
-		var active = $('#nav a.active').attr('href');
-		$('#' + active).show();
-
-		var projects = JSON.parse(localStorage.getItem(this.id + 'projects')) || [];
-		for (var i = 0; i < projects.length; i++) {
-			this.initProject(projects[i].path);
-		}
-
-		game.config.autoStart = false;
-		// Load Panda.js engine
-		game._loadModules();
+		window.addEventListener('resize', this.onResize.bind(this));
 
 		gui.Window.get().show();
 
-		window.addEventListener('resize', this.onResize.bind(this));
-		this.onResize();
+		console.log('Panda App ' + this.version);
+		console.log('Panda Engine ' + game.version);
 	},
 
 	onResize: function() {
+		return;
 		var width = window.innerWidth - 54;
 		if (this.browserVisible) {
 			// var canvas = document.getElementById('canvas');
@@ -59,8 +49,17 @@ panda = {
 		event.preventDefault();
 		var action = $(event.currentTarget).attr('href');
 	
-		if (action === 'browser') this.toggleBrowser();
-		else this.switchTab(action);
+		if (this[action]) this[action]();
+	},
+
+	toggleModules: function() {
+		var tab = $('#modules');
+		if (tab.is(':visible')) {
+			tab.hide();
+		}
+		else {
+			tab.show();
+		}
 	},
 
 	toggleBrowser: function() {
@@ -234,79 +233,6 @@ panda = {
 		return true;
 	},
 
-	editProject: function(path) {
-		this.switchTab('editor');
-
-		this.currentProject = path;
-
-		var file = nodepath.join(path + '/src/game/main.js');
-
-		this.currentFile = file;
-		this.currentModule = 'game.main';
-		
-		fs.readFile(file, {
-			encoding: 'utf-8'
-		}, function(err, data) {
-			var textarea = document.createElement('textarea');
-			$('#editor').append(textarea);
-
-			var editor = CodeMirror.fromTextArea(textarea, {
-				lineNumbers: true,
-				theme: panda.config.editor.theme,
-				mode: 'javascript',
-				indentUnit: 4,
-				value: data,
-				autofocus: true,
-				hint: CodeMirror.hint.javascript,
-				keyMap: 'sublime',
-				autoCloseBrackets: true
-			});
-			editor.setValue(data);
-			editor.setOption('extraKeys', {
-				'Shift-Cmd-R': function() {
-					// Restart game
-					panda.restartGame();
-				},
-				'Cmd-R': function() {
-					// Restart scene
-					panda.restartScene();
-				},
-				'Cmd-X': function(cm) {
-					// Cut
-					clipboard.set(cm.getSelection(), 'text');
-					cm.replaceSelection('');
-				},
-				'Cmd-C': function(cm) {
-					// Copy
-					clipboard.set(cm.getSelection(), 'text');
-				},
-				'Cmd-V': function(cm) {
-					// Paste
-					cm.replaceSelection(clipboard.get('text'));
-				},
-				'Cmd-S': function(cm) {
-					if (cm.doc.history.lastSaveTime === cm.doc.history.lastModTime) {
-						console.log('Nothing to save');
-						return;
-					}
-
-					cm.doc.history.lastSaveTime = cm.doc.history.lastModTime;
-					
-					console.log('Saving ' + panda.currentFile);
-					fs.writeFile(panda.currentFile, editor.getValue(), {
-						encoding: 'utf-8'
-					}, function(err) {
-						if (err) console.log('Error saving file');
-						else {
-							console.log('Saved');
-							panda.reloadModule('game.main');
-						}
-					});
-				}
-			});
-		});
-	},
-
 	restartScene: function() {
 		console.log('Restarting scene...');
 		if (game.scene) game.system.setScene(game.system.sceneName);
@@ -320,7 +246,9 @@ panda = {
 	reloadModule: function() {
 		console.log('Reloading module...');
 		game.ready = function() {
+			console.log('Done');
 			if (this.assetQueue.length > 0 || this.audioQueue.length > 0) {
+				console.log('Loading new assets...');
 				this._loader = new this.Loader(game.system.sceneName);
 				this._loader.start();
 			}
@@ -333,7 +261,7 @@ panda = {
 		for (var i = 0; i < game.modules[this.currentModule].classes.length; i++) {
 			var className = game.modules[this.currentModule].classes[i];
 			delete game[className];
-			console.log('Deleted class ' + className);
+			console.log('Deleting class ' + className);
 		}
 
 		// Delete module
@@ -377,12 +305,103 @@ panda = {
 		}
 	},
 
-	loadProject: function() {
+	loadEngineModules: function(callback) {
+		if (game.moduleQueue.length === 0) return callback();
+		console.log('Loading engine modules...');
+		game.ready = function() {
+			console.log('Done');
+			callback();
+		};
+		game.config.autoStart = false;
+		game._loadModules();
+	},
+
+	loadProject: function(dir) {
+		dir = '/Users/eemelikelokorpi/Sites/yle/peka_ostbricka';
+
 		$('#welcome').hide();
+		if (game.moduleQueue.length > 0) {
+			this.loadEngineModules(this.loadProject.bind(this, dir));
+			return;
+		}
+
+		console.log('Loading project...');
+		
+		var file = dir + '/src/game/main.js';
+		this.currentProject = dir;
+		this.currentFile = file;
+		this.currentModule = 'game.main';
+		
+		fs.readFile(file, {
+			encoding: 'utf-8'
+		}, this.projectLoaded.bind(this));
+	},
+
+	projectLoaded: function(err, data) {
+		console.log('Done');
+
 		$('#nav').show();
 		$('#main').show();
+		$('#editor').show();
 
-		this.editProject('/Users/eemelikelokorpi/Sites/yle/peka_ostbricka');
+		var textarea = document.createElement('textarea');
+		$('#editor').append(textarea);
+
+		var editor = CodeMirror.fromTextArea(textarea, {
+			lineNumbers: true,
+			theme: this.config.editor.theme,
+			mode: 'javascript',
+			indentUnit: 4,
+			autofocus: true,
+			hint: CodeMirror.hint.javascript,
+			keyMap: 'sublime',
+			autoCloseBrackets: true
+		});
+		editor.setValue(data);
+		editor.setOption('extraKeys', {
+			'Shift-Cmd-R': function() {
+				// Restart game
+				panda.restartGame();
+			},
+			'Cmd-R': function() {
+				// Restart scene
+				panda.restartScene();
+			},
+			'Cmd-X': function(cm) {
+				// Cut
+				clipboard.set(cm.getSelection(), 'text');
+				cm.replaceSelection('');
+			},
+			'Cmd-C': function(cm) {
+				// Copy
+				clipboard.set(cm.getSelection(), 'text');
+			},
+			'Cmd-V': function(cm) {
+				// Paste
+				cm.replaceSelection(clipboard.get('text'));
+			},
+			'Cmd-S': function(cm) {
+				if (cm.doc.history.lastSaveTime === cm.doc.history.lastModTime) {
+					console.log('Nothing to save');
+					return;
+				}
+
+				cm.doc.history.lastSaveTime = cm.doc.history.lastModTime;
+				
+				console.log('Saving ' + panda.currentFile);
+				fs.writeFile(panda.currentFile, editor.getValue(), {
+					encoding: 'utf-8'
+				}, function(err) {
+					if (err) console.log('Error saving file');
+					else {
+						console.log('Saved');
+						panda.reloadModule('game.main');
+					}
+				});
+			}
+		});
+
+		this.toggleBrowser();
 	},
 
 	saveProjectSettings: function() {

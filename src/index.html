@@ -29,17 +29,18 @@
 <body>
     <div id="welcome">
         <div class="content">
+            <img src="img/pandatext.png" class="logo">
             <button href="loadProject" class="big">Load project</button>
         </div>
     </div>
     <div id="nav">
         <!-- <a href="new"><img src="img/icons/briefcase.png"></a> -->
         <!-- <a href="projects" class="active"><img src="img/icons/folder.png"></a> -->
-        <a href="modules"><img src="img/icons/bolt.png"></a>
+        <a href="toggleEditor"><img src="img/icons/pencil.png"></a>
+        <a href="toggleModules"><img src="img/icons/bolt.png"></a>
         <!-- <a href="stats"><img src="img/icons/calculator.png"></a> -->
-        <a href="editor"><img src="img/icons/pencil.png"></a>
-        <a href="settings"><img src="img/icons/gear.png"></a>
-        <a href="browser" class="bottom"><img src="img/icons/gamecontroller.png"></a>
+        <a href="toggleSettings"><img src="img/icons/gear.png"></a>
+        <a href="toggleBrowser" class="bottom"><img src="img/icons/gamecontroller.png"></a>
     </div>
 
     <div id="main">
@@ -56,14 +57,11 @@
         </div>
 
         <div id="modules" class="tab">
-            <h1>Modules</h1>
-            <div class="content">
-                List here project modules and their classes
-            </div>
+            <div class="content"></div>
         </div>
 
-        <div id="stats" class="tab">
-            <h1>Stats</h1>
+        <div id="assets" class="tab">
+            <h1>Assets</h1>
             <div class="content"></div>
         </div>
 
