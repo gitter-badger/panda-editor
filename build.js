@@ -5,7 +5,7 @@ var nw = new NwBuilder({
     files: './src/**/**',
     platforms: ['osx64'],
     appName: 'Panda App',
-    version: '0.11.5',
+    // version: '0.11.5',
     macIcns: './icons/panda.icns',
     buildType: 'versioned'
 });
