@@ -27,16 +27,18 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
     function kw(type) {return {type: type, style: "keyword"};}
     var A = kw("keyword a"), B = kw("keyword b"), C = kw("keyword c");
     var operator = kw("operator"), atom = {type: "atom", style: "atom"};
+    var storage = { type:"storage", style: "storage"};
+    var entity = { type:"entity", style: "entity"};
 
     var jsKeywords = {
       "if": kw("if"), "while": A, "with": A, "else": B, "do": B, "try": B, "finally": B,
       "return": C, "break": C, "continue": C, "new": C, "delete": C, "throw": C, "debugger": C,
       "var": kw("var"), "const": kw("var"), "let": kw("var"),
-      "function": kw("function"), "catch": kw("catch"),
+      "function": storage, "catch": kw("catch"),
       "for": kw("for"), "switch": kw("switch"), "case": kw("case"), "default": kw("default"),
       "in": operator, "typeof": operator, "instanceof": operator,
       "true": atom, "false": atom, "null": atom, "undefined": atom, "NaN": atom, "Infinity": atom,
-      "this": kw("this"), "module": kw("module"), "class": kw("class"), "super": kw("atom"),
+      "this": atom, "module": kw("module"), "class": kw("class"), "super": kw("atom"),
       "yield": C, "export": kw("export"), "import": kw("import"), "extends": C
     };
 
@@ -402,7 +404,7 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
     if (type == "quasi") { return pass(quasi, me); }
     if (type == ";") return;
     if (type == "(") return contCommasep(expressionNoComma, ")", "call", me);
-    if (type == ".") return cont(property, me);
+    // if (type == ".") return cont(property, me);
     if (type == "[") return cont(pushlex("]"), maybeexpression, expect("]"), poplex, me);
   }
   function quasi(type, value) {

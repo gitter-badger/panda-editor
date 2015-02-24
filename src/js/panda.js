@@ -6,9 +6,10 @@ var editor = {
 	esprima: require('esprima'),
 
 	init: function() {
-		$('.tab .resize').mousedown(this.mousedown.bind(this));
-		$(window).mousemove(this.mousemove.bind(this));
-		$(window).mouseup(this.mouseup.bind(this));
+		// Tab resize
+		$('.tab .resize').mousedown(this.resizeDown.bind(this));
+		$(window).mousemove(this.resizeMove.bind(this));
+		$(window).mouseup(this.resizeUp.bind(this));
 
 		window.addEventListener('resize', this.onResize.bind(this));
 		window.ondragover = this.dragover.bind(this);
@@ -63,7 +64,7 @@ var editor = {
 		}
 	},
 
-	mousedown: function(event) {
+	resizeDown: function(event) {
 		this.resizing = true;
 		this.resizeX = event.pageX;
 		this.resizeTarget = $(event.currentTarget).parent('.tab');
@@ -71,7 +72,7 @@ var editor = {
 		$(document.body).css('cursor', 'col-resize');
 	},
 
-	mousemove: function(event) {
+	resizeMove: function(event) {
 		if (this.resizing) {
 			var newWidth = this.resizeWidth + (event.pageX - this.resizeX);
 			if (newWidth < 200) newWidth = 200;
@@ -82,50 +83,30 @@ var editor = {
 		}
 	},
 
-	mouseup: function(event) {
+	resizeUp: function(event) {
 		this.resizing = false;
 		$(document.body).css('cursor', 'default');
+		this.editor.focus();
 	},
 
 	onResize: function() {
-		var modulesWidth = $('#modules').width();
-		var editorWidth = window.innerWidth - modulesWidth;
+		var editorWidth = window.innerWidth;
+		var modulesWidth = 0;
+		
+		if ($('#modules').is(':visible')) {
+			modulesWidth = $('#modules').width();
+			editorWidth -= modulesWidth;
+		}
+
 		$('#editor').width(editorWidth);
 		$('#editor').css('margin-left', modulesWidth + 'px');
 	},
 
 	toggleModules: function() {
 		var tab = $('#modules');
-		if (tab.is(':visible')) {
-			tab.hide();
-		}
-		else {
-			tab.show();
-		}
+		if (tab.is(':visible')) tab.hide();
+		else tab.show();
 		this.onResize();
-	},
-
-	toggleBrowser: function() {
-		this.browserVisible = !this.browserVisible;
-		if (this.browserVisible) {
-			$('#browser').show();
-		}
-		else {
-			$('#browser').hide();
-		}
-		// this.startGame();
-		this.onResize();
-	},
-
-	switchTab: function(name) {
-		var active = $('#nav a.active').attr('href');
-		if (active === name) return;
-
-		$('#' + active).hide();
-		$('#nav a.active').removeClass('active');
-
-		var target = $('#nav a[href="' + name + '"]').addClass('active');
-		$('#' + name).show();
 	},
 
 	ksort: function(obj, compare) {
@@ -157,8 +138,10 @@ var editor = {
 		for (var name in this.modules) {
 			var div = document.createElement('div');
 			$(div).addClass('module');
-			$(div).html(name.substr(5));
+			$(div).html(name);
 			$(div).appendTo($('#modules .content .list'));
+
+			this.modules[name].div = div;
 
 			var button = document.createElement('button');
 			$(button).html('+');
@@ -170,7 +153,7 @@ var editor = {
 				$(div).addClass('class');
 				$(div).html(className);
 				$(div).appendTo($('#modules .content .list'));
-				$(div).click(this.editClass.bind(this, className, name, div));
+				$(div).click(this.editClass.bind(this, className, name));
 
 				this.modules[name].classes[className].div = div;
 
@@ -179,44 +162,6 @@ var editor = {
 				}
 			}
 		}
-	},
-
-	playScene: function(name, button) {
-		$('button.playing').html('>');
-		$('button.playing').removeClass('playing');
-
-		if (this.currentScene !== name) {
-			this.currentScene = name;
-
-			$(button).html('||');
-			$(button).addClass('playing');
-
-			if (!game.system) {
-				game.System.startScene = name;
-				game._start();
-			}
-			else {
-				game.system.setScene(name);
-				document.getElementById('pandaDebug').style.color = '#90a959';
-			}
-		}
-		else {
-			this.currentScene = null;
-			game.system.pause();
-		}
-	},
-
-	deleteClass: function(name, module) {
-		var areyousure = confirm('Delete class ' + name + ' from ' + module + '?');
-		if (!areyousure) return;
-
-		delete game[name];
-		delete game.modules[module].classes[name];
-
-		var patt = new RegExp('game\\.create\\w{5}\\([\'\"]' + name + '[\\s\\S]*?\\n\\}\\)\\;[\\n]', 'm');
-		game.modules[module].data = game.modules[module].data.replace(patt, '');
-
-		
 	},
 
 	newClass: function(module) {
@@ -229,78 +174,21 @@ var editor = {
 		this.editor.focus();
 	},
 
-	editClass: function(name, module, div) {
+	editClass: function(name, module) {
 		if (this.currentClass === name) return;
-		if (!module) return;
 
-		if (div) {
-			$('#modules .class.current').removeClass('current');
-			$(div).addClass('current');
-			this.currentClassDiv = div;
-		}
+		var classObj = this.getCurrentClassObject();
+		if (classObj) $(classObj.div).removeClass('current');
 
 		this.currentModule = module;
 		this.currentClass = name;
 
-		this.editor.doc.history.lastChangeTime = 0;
-		this.editor.setValue(this.modules[module].classes[name].data);
-		this.editor.doc.history.lastChangeTime = this.editor.doc.history.lastModTime;
-		
-		$('#editor .content textarea').focus();
-	},
+		var classObj = this.getCurrentClassObject();
+		$(classObj.div).addClass('current');
 
-	editModule: function(name, div) {
-		if (this.currentModule === name) return;
-		this.currentModule = name;
-
-		$('#modules .current').removeClass('current');
-		$(div).addClass('current');
-
-		var path = this.currentProject + '/src/' + name.replace(/\./g, '/') + '.js';
-
-		this.editFile(path);
-	},
-
-	newModule: function() {
-		var name = prompt('New module name:');
-		if (name) {
-			if (game.modules['game.' + name]) return;
-
-			var file = this.currentProject + '/src/game/' + name + '.js';
-
-			var value = "game.module(\n    'game."+name+"'\n).body(function() {\n});";
-
-			console.log('Saving ' + file);
-			this.fs.writeFile(file, value, {
-				encoding: 'utf-8'
-			}, function(err) {
-				if (err) console.log('Error saving file');
-				else {
-					console.log('Saved');
-					// panda.updateModuleList();
-				}
-			});
-		}
-	},
-
-	editFile: function(path) {
-		console.log('Loading file ' + path);
-		this.currentFile = path;
-
-		this.fs.readFile(path, {
-			encoding: 'utf-8'
-		}, this.fileLoaded.bind(this));
-	},
-
-	fileLoaded: function(err, data) {
-		console.log('Done');
-		this.editor.setValue(data);
-	},
-
-	buttonClick: function(path, event) {
-		event.preventDefault();
-		var action = $(event.currentTarget).attr('href');
-		if (this[action]) this[action](path);
+		this.editor.setValue(classObj.data);
+		this.editor.doc.clearHistory();
+		this.editor.focus();
 	},
 
 	buildProject: function(dir) {
@@ -322,105 +210,6 @@ var editor = {
 		
 		if (err) this.error(err);
 		else this.success('Build completed');
-	},
-
-	openProject: function() {
-		this.openFolder(this.addProject.bind(this));
-	},
-
-	openFolder: function(callback) {
-		var input = document.createElement('input');
-		input.type = 'file';
-		input.nwdirectory = true;
-		input.onchange = function() {
-			callback(input.value);
-		};
-		input.click();
-	},
-
-	addProject: function(dir) {
-		if (this.projects[dir]) {
-			console.log('Project already exists.');
-		}
-		else if (this.initProject(dir)) {
-			this.saveProjects();
-			console.log('Project added');
-		}
-		else {
-			console.log('Invalid project folder.');
-		}
-	},
-
-	restartScene: function() {
-		console.log('Restarting scene...');
-		if (game.scene) game.system.setScene(game.system.sceneName);
-		document.getElementById('pandaDebug').style.color = '#90a959';
-	},
-
-	restartGame: function() {
-		console.log('Restarting game...');
-		if (game.scene) game.system.setScene(game.System.startScene);
-		document.getElementById('pandaDebug').style.color = '#90a959';
-	},
-
-	reloadModule: function(name) {
-		console.log('Reloading module ' + name);
-
-		game.ready = function() {
-			panda.updateModuleList();
-			if (this.assetQueue.length > 0 || this.audioQueue.length > 0) {
-				// console.log('Loading new assets...');
-				// this._loader = new this.Loader(game.system.sceneName);
-				// this._loader.start();
-			}
-			else {
-				// panda.restartScene();
-			}
-		};
-
-		// Delete module classes
-		for (var className in game.modules[name].classes) {
-			delete game[className];
-		}
-
-		// Remove module script
-		if (this._moduleScripts[name]) {
-			document.getElementsByTagName('head')[0].removeChild(this._moduleScripts[name]);
-		}
-
-		// Delete module
-		delete game.modules[name];
-
-		// Reload module script
-		var path = name.replace(/\./g, '/') + '.js?' + Date.now();
-		var script = document.createElement('script');
-		script.type = 'text/javascript';
-		script.src = this.currentProject + '/src/' + path;
-		script.onerror = function() {
-		    console.log('Error loading module');
-		};
-		document.getElementsByTagName('head')[0].appendChild(script);
-
-		this._moduleScripts[name] = script;
-	},
-
-	showProject: function(div) {
-		$(div).toggleClass('closed');
-	},
-
-	removeProject: function(path) {
-		if (confirm('Are you sure?')) {
-			$(this.projects[path].div).remove();
-			delete this.projects[path];
-		}
-		this.saveProjects();
-	},
-
-	newProject: function() {
-		var name = prompt('Project name:');
-		if (!name) return;
-		name = name.replace(/\s/g, '');
-		if (!name) return;
 	},
 
 	loadLastProject: function() {
@@ -472,6 +261,7 @@ var editor = {
 
 			var file = this.currentProject + '/src/' + name.replace(/\./g, '/') + '.js';
 			console.log('Reading file ' + file);
+
 			this.fs.readFile(file, {
 				encoding: 'utf-8'
 			}, this.readModuleData.bind(this, name));
@@ -480,6 +270,35 @@ var editor = {
 
 		console.log('Loading classes...');
 		this.getClassesFromModule();
+	},
+
+	readModuleData: function(name, err, data) {
+		var requires = 0;
+
+		this.modules[name].data = data;
+		this.modules[name].requires = [];
+
+		// Read required modules from data
+		// FIXME use esprima
+		var index = data.indexOf('.require(');
+		if (index !== -1) {
+			var patt = /([^)]+)/;
+			data = patt.exec(data.substr(index).replace('.require(', ''));
+			if (data) {
+				data = data[0].replace(/\s/g, '');
+				data = data.replace(/\'/g, '');
+				data = data.split(',');
+				for (var i = 0; i < data.length; i++) {
+					// Only include game modules
+					if (data[i].indexOf('game.') !== 0) continue;
+					this.modules[data[i]] = {};
+					this.modules[name].requires.push(data[i]);
+					requires++;
+				}
+			}
+		}
+
+		this.loadModuleData();
 	},
 
 	getClassesFromModule: function() {
@@ -494,7 +313,8 @@ var editor = {
 				range: true
 			});
 
-			var nodes = data.body[0].expression.arguments[0].body.body;
+			var body = data.body[0].expression.arguments[0].body;
+			var nodes = body.body;
 
 			for (var i = 0; i < nodes.length; i++) {
 				var expName = nodes[i].expression.callee.property.name;
@@ -517,13 +337,12 @@ var editor = {
 					if (expName === 'createScene') className = 'Scene' + className;
 					this.modules[name].classes[className] = {
 						data: strData,
-						origData: strData
+						savedData: strData
 					};
 				}
 			}
 
 			this.getClassesFromModule();
-
 			return;
 		}
 
@@ -531,31 +350,23 @@ var editor = {
 		this.editor.setValue('');
 	},
 
-	readModuleData: function(name, err, data) {
-		var requires = 0;
+	revertClass: function() {
+		var classObj = this.getCurrentClassObject();
+		if (!classObj) return;
 
-		this.modules[name].data = data;
+		var sure = confirm('Revert class data?');
+		if (!sure) return;
 
-		// Read required modules from data
-		// FIXME make this cleaner
-		var index = data.indexOf('.require(');
-		if (index !== -1) {
-			var patt = /([^)]+)/;
-			data = patt.exec(data.substr(index).replace('.require(', ''));
-			if (data) {
-				data = data[0].replace(/\s/g, '');
-				data = data.replace(/\'/g, '');
-				data = data.split(',');
-				for (var i = 0; i < data.length; i++) {
-					// Only include game modules
-					if (data[i].indexOf('game.') !== 0) continue;
-					this.modules[data[i]] = {};
-					requires++;
-				}
-			}
-		}
+		classObj.data = classObj.savedData;
+		classObj.changed = false;
+		this.editor.doc.clearHistory();
+		this.editor.setValue(classObj.data);
+		$(classObj.div).html(this.currentClass);
+	},
 
-		this.loadModuleData();
+	getCurrentClassObject: function() {
+		if (!this.currentClass || !this.currentModule) return false;
+		return this.modules[this.currentModule].classes[this.currentClass];
 	},
 
 	loadEditor: function() {
@@ -566,7 +377,7 @@ var editor = {
 
 		this.editor = CodeMirror.fromTextArea(textarea, {
 			lineNumbers: true,
-			theme: 'base16-dark',
+			theme: 'sunburst',
 			mode: 'javascript',
 			indentUnit: 4,
 			autofocus: true,
@@ -575,91 +386,149 @@ var editor = {
 			autoCloseBrackets: true
 		});
 		this.editor.setOption('extraKeys', {
-			'Ctrl-Tab': function() {
-				panda.toggleModules();
-			},
-			'Cmd-R': function(cm) {
-				panda.restartScene();
-			},
-			'Shift-Cmd-R': function(cm) {
-				panda.restartGame();
-			},
-			'Cmd-X': function(cm) {
-				// Cut
-				clipboard.set(cm.getSelection(), 'text');
-				cm.replaceSelection('');
-			},
-			'Cmd-C': function(cm) {
-				// Copy
-				clipboard.set(cm.getSelection(), 'text');
-			},
-			'Cmd-V': function(cm) {
-				// Paste
-				cm.replaceSelection(clipboard.get('text'));
-			},
-			'Cmd-S': function(cm) {
-				editor.saveChanges();
-			}
+			'Ctrl-Tab': this.toggleModules.bind(this),
+			'Cmd-R': this.revertClass.bind(this),
+			'Cmd-S': this.saveChanges.bind(this),
+			'Cmd-X': this.cut.bind(this),
+			'Cmd-C': this.copy.bind(this),
+			'Cmd-V': this.paste.bind(this)
 		});
 		this.editor.on('change', this.onChange.bind(this));
 	},
 
+	cut: function() {
+		this.copy();
+		this.editor.replaceSelection('');
+	},
+
+	copy: function() {
+		this.clipboard.set(this.editor.getSelection(), 'text');
+	},
+
+	paste: function() {
+		var data = this.clipboard.get('text');
+		data = data.replace(/^[\s]*/, ''); // Remove whitespace from start
+		this.editor.replaceSelection(data);
+	},
+
 	onChange: function() {
 		if (this.currentClass) {
-			if (this.editor.doc.history.lastChangeTime && this.editor.doc.history.lastChangeTime < this.editor.doc.history.lastModTime) {
-				$(this.currentClassDiv).html(this.currentClass + '*');
-				this.modules[this.currentModule].classes[this.currentClass].changed = true;
-				this.editor.doc.history.lastChangeTime = this.editor.doc.history.lastModTime;
+			if (this.editor.doc.history.lastOrigin === 'setValue') return;
+
+			var classObj = this.getCurrentClassObject();
+			if (!classObj.changed) {
+				$(classObj.div).html(this.currentClass + '*');
+				$(classObj.div).addClass('changed');
+				classObj.changed = true;
 			}
 
 			// Save data (also undo)
-			this.modules[this.currentModule].classes[this.currentClass].data = this.editor.getValue();
+			classObj.data = this.editor.getValue();
 		}
+	},
+
+	saveNewClass: function() {
+		var classValue = this.editor.getValue();
+		if (!classValue) return false;
+
+		var className = prompt('New class name for ' + this.currentModule + ':');
+		if (className) className = className.replace(/[\s\W]/g, '');
+		if (className) className = className.substr(0, 24); // Max length
+		if (!className) return false;
+		if (this.modules[this.currentModule].classes[className]) return false;
+
+		console.log('Saving new class ' + className);
+
+		this.modules[this.currentModule].classes[className] = {
+			data: classValue,
+			savedData: classValue
+		};
+
+		this.currentClass = className;
+
+		var classObj = this.getCurrentClassObject();
+		$(classObj.div).addClass('current');
+
+		return true;
 	},
 
 	saveChanges: function() {
 		console.log('Saving changes');
 
-		if (this.currentModule && !this.currentClass) {
-			// New class
-			var className = prompt('New class name for ' + this.currentModule + ':');
-			if (className) className = className.replace(/[\s\W]/g, '');
-			if (className) className = className.substr(0, 24);
-			if (className && !this.modules[this.currentModule].classes[className]) {
-				// TODO insert new module
-				console.log('TODO');
-			}
-		}
+		var needUpdate = false;
 
 		for (var module in this.modules) {
 			var needToSave = false;
+
+			if (this.currentModule === module && !this.currentClass) {
+				if (this.saveNewClass()) {
+					needToSave = true;
+					needUpdate = true;
+				}
+			}
+
 			for (var className in this.modules[module].classes) {
 				var classObj = this.modules[module].classes[className];
 
 				if (classObj.changed) {
-					console.log('Saving class ' + className);
-					var classOrigData = classObj.origData;
+					if (classObj.data === '') {
+						console.log('Deleting class ' + className);
+						$(classObj.div).remove();
+						delete this.modules[module].classes[className];
+						needUpdate = true;
+					}
+					else {
+						console.log('Saving class ' + className);
+					}
 
-					// Save data
-					this.modules[module].data = this.modules[module].data.replace(classOrigData, classObj.data);
-
-					$(classObj.div).html(className);
-					classObj.origData = classObj.data;
-					classObj.changed = false;
 					needToSave = true;
 				}
 			}
 
 			if (needToSave) {
+				console.log('Saving module ' + module);
 				var file = this.currentProject + '/src/' + module.replace(/\./g, '/') + '.js';
 
-				console.log('Saving ' + file);
-				this.fs.writeFile(file, this.modules[module].data, {
+				var data = 'game.module(\'' + module + '\')\n';
+				if (this.modules[module].requires.length > 0) {
+					var requires = this.modules[module].requires.join('\', \'');
+					data += '.require(\'' + requires + '\')\n';
+				}
+				data += '.body(function() {\n\n';
+
+				for (var className in this.modules[module].classes) {
+					var funcName = 'createClass';
+					var strClassName = className;
+					if (className.indexOf('Scene') === 0) {
+						funcName = 'createScene';
+						strClassName = strClassName.replace('Scene', '');
+					}
+					data += 'game.' + funcName + '(\'' + strClassName + '\', ';
+					data += this.modules[module].classes[className].data;
+					data += ');\n\n';
+				}
+
+				data += '});\n';
+
+				console.log('Writing file ' + file);
+				this.fs.writeFile(file, data, {
 					encoding: 'utf-8'
-				}, function(err) {
-					if (err) console.log('Error saving module');
-				});
+				}, this.moduleSaved.bind(this, module));
 			}
+		}
+
+		if (needUpdate) this.updateModuleList();
+	},
+
+	moduleSaved: function(module, err) {
+		if (err) return alert('Error saving module ' + module);
+		
+		for (var className in this.modules[module].classes) {
+			var classObj = this.modules[module].classes[className];
+			classObj.changed = false;
+			classObj.savedData = classObj.data;
+			$(classObj.div).removeClass('changed');
+			$(classObj.div).html(className);
 		}
 	},
 
@@ -686,21 +555,6 @@ var editor = {
 			this.initProject(dir);
 			this.saveProjects();
 		}
-	},
-
-	saveProjects: function() {
-		var projects = [];
-		for (var path in this.projects) {
-			projects.push({
-				path: path
-			});
-		}
-		
-		localStorage.setItem(info.id + 'projects', JSON.stringify(projects));
-	},
-
-	clearProjects: function() {
-		localStorage.setItem(info.id + 'projects', null);
 	}
 };
 

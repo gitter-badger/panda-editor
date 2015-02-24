@@ -136,8 +136,8 @@ h2 {
 }
 
 #modules button:active {
-	background: #333;
-	color: #999;
+	background: #999;
+	color: #000;
 }
 
 #modules span {
@@ -150,8 +150,11 @@ h2 {
 
 #modules .class:hover {
 	cursor: pointer;
-	color: #f4bf75;
 	background: #151515;
+}
+
+#modules .class.changed {
+	color: #f4bf75;
 }
 
 #modules .class.current {
