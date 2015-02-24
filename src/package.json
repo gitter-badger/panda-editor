@@ -1,6 +1,8 @@
 {
   "name": "panda.js-app",
   "version": "0.1.0",
+  "id": "net.pandajs.app",
+  "description": "Panda Editor",
   "main": "index.html",
   "window": {
     "width": 1280,

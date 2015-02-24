@@ -1,52 +1,66 @@
-var info = require('./package.json');
-var fork = require('child_process').fork;
-var gui = require('nw.gui');
-var fs = require('fs');
-var clipboard = gui.Clipboard.get();
-
-panda = {
-	id: 'net.pandajs.app',
-	version: info.version,
-	projects: {},
-	config: {
-		editor: {
-			splitView: true,
-			theme: 'base16-dark'
-		}
-	},
-	browserVisible: false,
+var editor = {
+	info: require('./package.json'),
+	fork: require('child_process').fork,
+	gui: require('nw.gui'),
+	fs: require('fs'),
+	esprima: require('esprima'),
 
 	init: function() {
-		$('#nav a').click(this.menuClick.bind(this));
-		$('button').click(this.buttonClick.bind(this, false));
 		$('.tab .resize').mousedown(this.mousedown.bind(this));
-		$(document).mousemove(this.mousemove.bind(this));
-		$(document).mouseup(this.mouseup.bind(this));
-
-		game.createClass = this.createClass.bind(this);
+		$(window).mousemove(this.mousemove.bind(this));
+		$(window).mouseup(this.mouseup.bind(this));
 
 		window.addEventListener('resize', this.onResize.bind(this));
+		window.ondragover = this.dragover.bind(this);
+		window.ondragleave = this.dragleave.bind(this);
+		window.ondrop = this.filedrop.bind(this);
 
-		gui.Window.get().show();
+		this.onResize();
+		this.loadEditor();
 
-		console.log('Panda App ' + this.version);
-		console.log('Panda Engine ' + game.version);
+		this.clipboard = this.gui.Clipboard.get();
+
+		this.window = this.gui.Window.get();
+		
+		this.initMenu();
+
+		this.loadLastProject();
+
+		this.window.show();
 	},
 
-	createClass: function(name, extend, content) {
-		if (game[name]) throw 'class ' + name + ' already created';
+	initMenu: function() {
+		console.log('Loading menu...');
 
-		if (typeof extend === 'object') {
-		    content = extend;
-		    extend = 'Class';
+		var menubar = new this.gui.Menu({ type: 'menubar' });
+		menubar.createMacBuiltin(this.info.description);
+
+		var file = new this.gui.Menu();
+		file.append(new this.gui.MenuItem({ label: 'New' }));
+		var help = new this.gui.Menu();
+		help.append(new this.gui.MenuItem({ label: 'About' }));
+		
+		menubar.insert(new this.gui.MenuItem({ label: 'File', submenu: file }), 1);
+		menubar.append(new this.gui.MenuItem({ label: 'Help', submenu: help }));
+
+		this.window.menu = menubar;
+	},
+
+	dragover: function() {
+		return false;
+	},
+
+	dragleave: function() {
+		return false;
+	},
+
+	filedrop: function(event) {
+		event.preventDefault();
+		var entry = event.dataTransfer.items[0].webkitGetAsEntry();
+		if (entry.isDirectory) {
+			var path = event.dataTransfer.files[0].path;
+			this.loadProject(path);	
 		}
-
-		var newClass = game[name] = game[extend].extend(content);
-		game._currentModule.classes[name] = {
-		    extend: extend,
-		    content: this.objToString(content)
-		};
-		return newClass;
 	},
 
 	mousedown: function(event) {
@@ -60,7 +74,8 @@ panda = {
 	mousemove: function(event) {
 		if (this.resizing) {
 			var newWidth = this.resizeWidth + (event.pageX - this.resizeX);
-			if (newWidth < 100) newWidth = 100;
+			if (newWidth < 200) newWidth = 200;
+			if (newWidth > 400) newWidth = 400;
 			this.resizeTarget.width(newWidth);
 
 			this.onResize();
@@ -73,23 +88,10 @@ panda = {
 	},
 
 	onResize: function() {
-		var totalWidth = 0;
-		$('.tab .content').each(function() {
-			if ($(this).is(':visible')) {
-				totalWidth += $(this).parent('.tab').width();
-			}
-		});
-
-		var browserWidth = window.innerWidth - totalWidth - $('#nav').width();
-
-		$('#browser').width(browserWidth);
-	},
-
-	menuClick: function(event) {
-		event.preventDefault();
-		var action = $(event.currentTarget).attr('href');
-	
-		if (this[action]) this[action]();
+		var modulesWidth = $('#modules').width();
+		var editorWidth = window.innerWidth - modulesWidth;
+		$('#editor').width(editorWidth);
+		$('#editor').css('margin-left', modulesWidth + 'px');
 	},
 
 	toggleModules: function() {
@@ -111,7 +113,7 @@ panda = {
 		else {
 			$('#browser').hide();
 		}
-		this.startGame();
+		// this.startGame();
 		this.onResize();
 	},
 
@@ -126,95 +128,54 @@ panda = {
 		$('#' + name).show();
 	},
 
-	startGame: function() {
-		if (!this.currentProject) return;
-		if (this.gameStarted) return;
-		this.gameStarted = true;
+	ksort: function(obj, compare) {
+	    if (!obj || typeof obj !== 'object') return false;
 
-		console.log('Loading config...');
+	    var keys = [], result = {}, i;
+	    for (i in obj) {
+	        keys.push(i);
+	    }
+	    
+	    keys.sort(compare);
+	    for (i = 0; i < keys.length; i++) {
+	        result[keys[i]] = obj[keys[i]];
+	    }
 
-		require(this.currentProject + '/src/game/config.js');
-
-		console.log('Done');
-
-		game.config = global.pandaConfig;
-
-		// Force settings
-		game.config.debug = game.config.debug || {};
-		game.config.debug.enabled = true;
-		game.config.debug.color = '#90a959';
-		game.config.system = game.config.system || {};
-		game.config.system.resize = false;
-		game.config.system.scale = false;
-		game.config.system.center = false;
-		game.config.mediaFolder = this.currentProject + '/media';
-		game.config.sourceFolder = this.currentProject + '/src';
-		game.config.autoStart = false;
-
-		game.ready = function() {
-			console.log('Done');
-
-			panda.initModules();
-
-			// console.log('Starting game...');
-			// game._start();
-		};
-
-		console.log('Loading game modules...');
-
-		var script = document.createElement('script');
-		script.type = 'text/javascript';
-		script.src = this.currentProject + '/src/game/main.js';
-		script.onerror = function() {
-		    console.log('Error starting game');
-		};
-		document.getElementsByTagName('head')[0].appendChild(script);
+	    return result;
 	},
 
-	initModules: function() {
+	updateModuleList: function() {
 		// Sort modules
-		game.modules = game.ksort(game.modules);
+		this.modules = this.ksort(this.modules);
 
-		for (var module in game.modules) {
+		for (var module in this.modules) {
 			// Sort classes
-			game.modules[module].classes = game.ksort(game.modules[module].classes);
+			this.modules[module].classes = this.ksort(this.modules[module].classes);
 		}
 
 		$('#modules .content .list').html('');
-		for (var name in game.modules) {
-			if (name.indexOf('game.') === 0) {
+		for (var name in this.modules) {
+			var div = document.createElement('div');
+			$(div).addClass('module');
+			$(div).html(name.substr(5));
+			$(div).appendTo($('#modules .content .list'));
+
+			var button = document.createElement('button');
+			$(button).html('+');
+			$(button).click(this.newClass.bind(this, name));
+			$(button).appendTo(div);
+
+			for (var className in this.modules[name].classes) {
 				var div = document.createElement('div');
-				$(div).addClass('module');
-				$(div).html(name.substr(5));
+				$(div).addClass('class');
+				$(div).html(className);
 				$(div).appendTo($('#modules .content .list'));
+				$(div).click(this.editClass.bind(this, className, name, div));
 
-				var button = document.createElement('button');
-				$(button).html('+');
-				$(button).click(this.newClass.bind(this, name));
-				$(button).appendTo(div);
+				this.modules[name].classes[className].div = div;
 
-				var button = document.createElement('button');
-				$(button).html('-');
-				$(button).click(this.removeClass.bind(this));
-				$(button).appendTo(div);
-
-				for (var className in game.modules[name].classes) {
-					if (game[className].prototype instanceof game.Scene) {
-						var button = document.createElement('button');
-						$(button).html('>');
-						$(button).click(this.playScene.bind(this, className.replace('Scene', ''), button));
-						$(button).appendTo($('#modules .content .list'));
-					}
-
-					var div = document.createElement('div');
-					$(div).addClass('class');
-					$(div).html('&nbsp;&nbsp;&nbsp;&nbsp;' + className);
-					$(div).appendTo($('#modules .content .list'));
-					$(div).click(this.editClass.bind(this, className, div, name));
-
-					if (this.currentClass === className) {
-						$(div).addClass('current');
-					}
+				if (this.currentClass === className) {
+					$(div).addClass('current');
 				}
 			}
 		}
@@ -245,68 +206,46 @@ panda = {
 		}
 	},
 
-	removeClass: function() {
-		if (!this.currentClass) return;
-
-		var areyousure = confirm('Delete class ' + this.currentClass + '?');
+	deleteClass: function(name, module) {
+		var areyousure = confirm('Delete class ' + name + ' from ' + module + '?');
 		if (!areyousure) return;
 
-		delete game[this.currentClass];
-		delete game.modules[this.currentModule].classes[this.currentClass];
+		delete game[name];
+		delete game.modules[module].classes[name];
 
+		var patt = new RegExp('game\\.create\\w{5}\\([\'\"]' + name + '[\\s\\S]*?\\n\\}\\)\\;[\\n]', 'm');
+		game.modules[module].data = game.modules[module].data.replace(patt, '');
+
+		
+	},
+
+	newClass: function(module) {
+		this.currentModule = module;
 		this.currentClass = null;
-		this.editor.setValue('');
 
-		this.saveCurrentModule();
+		this.editor.setValue('{\n    init: function() {\n    }\n}');
+		var line = 1;
+		this.editor.setCursor(line, this.editor.getLine(line).length);
+		this.editor.focus();
 	},
 
-	newClass: function(moduleName) {
-		this.currentModule = moduleName;
-
-		var className = prompt('New class name:');
-		className = className.replace('/\s/g', '');
-		if (className) {
-			if (game.modules[this.currentModule].classes[className]) return;
-
-			var extend = 'Class';
-			if (className.indexOf('Scene') === 0) extend = 'Scene';
-
-			game._currentModule = game.modules[this.currentModule];
-
-			this.createClass(className, extend, {
-				init: function() {}
-			});
-
-			this.editClass(className);
-			this.saveCurrentModule();
-		}
-	},
-
-	objToString: function(obj) {
-	    var str = '';
-	    for (var p in obj) {
-	    	if (str !== '') str += ',\n';
-	        if (obj.hasOwnProperty(p)) {
-	        	if (typeof obj[p] === 'function' && str !== '') str += '\n';
-	            str += p + ': ' + obj[p];
-	        }
-	    }
-	    return str;
-	},
-
-	editClass: function(name, div, module) {
+	editClass: function(name, module, div) {
 		if (this.currentClass === name) return;
-		if (module) this.currentModule = module;
+		if (!module) return;
 
-		$('#modules .content .list .class.current').removeClass('current');
-		$(div).addClass('current');
+		if (div) {
+			$('#modules .class.current').removeClass('current');
+			$(div).addClass('current');
+			this.currentClassDiv = div;
+		}
 
+		this.currentModule = module;
 		this.currentClass = name;
-		var value = game.modules[this.currentModule].classes[name].content;
-		this.editor.setValue(value);
 
-		this.editor.doc.history.lastSaveTime = this.editor.doc.history.lastModTime;
-
+		this.editor.doc.history.lastChangeTime = 0;
+		this.editor.setValue(this.modules[module].classes[name].data);
+		this.editor.doc.history.lastChangeTime = this.editor.doc.history.lastModTime;
+		
 		$('#editor .content textarea').focus();
 	},
 
@@ -332,13 +271,13 @@ panda = {
 			var value = "game.module(\n    'game."+name+"'\n).body(function() {\n});";
 
 			console.log('Saving ' + file);
-			fs.writeFile(file, value, {
+			this.fs.writeFile(file, value, {
 				encoding: 'utf-8'
 			}, function(err) {
 				if (err) console.log('Error saving file');
 				else {
 					console.log('Saved');
-					// panda.initModules();
+					// panda.updateModuleList();
 				}
 			});
 		}
@@ -348,7 +287,7 @@ panda = {
 		console.log('Loading file ' + path);
 		this.currentFile = path;
 
-		fs.readFile(path, {
+		this.fs.readFile(path, {
 			encoding: 'utf-8'
 		}, this.fileLoaded.bind(this));
 	},
@@ -424,12 +363,11 @@ panda = {
 		document.getElementById('pandaDebug').style.color = '#90a959';
 	},
 
-	reloadCurrentModule: function() {
-		if (!this.currentModule) return;
-		console.log('Reloading module ' + this.currentModule);
+	reloadModule: function(name) {
+		console.log('Reloading module ' + name);
 
 		game.ready = function() {
-			panda.initModules();
+			panda.updateModuleList();
 			if (this.assetQueue.length > 0 || this.audioQueue.length > 0) {
 				// console.log('Loading new assets...');
 				// this._loader = new this.Loader(game.system.sceneName);
@@ -440,22 +378,21 @@ panda = {
 			}
 		};
 
-		// Delete classes in module
-		for (var className in game.modules[this.currentModule].classes) {
+		// Delete module classes
+		for (var className in game.modules[name].classes) {
 			delete game[className];
-			// console.log('Deleting class ' + className);
+		}
+
+		// Remove module script
+		if (this._moduleScripts[name]) {
+			document.getElementsByTagName('head')[0].removeChild(this._moduleScripts[name]);
 		}
 
 		// Delete module
-		delete game.modules[this.currentModule];
+		delete game.modules[name];
 
-		// Remove module script
-		if (this.currentModuleScript) {
-			document.getElementsByTagName('head')[0].removeChild(this.currentModuleScript);
-		}
-
-		// Reload module code
-		var path = this.currentModule.replace(/\./g, '/') + '.js?' + Date.now();
+		// Reload module script
+		var path = name.replace(/\./g, '/') + '.js?' + Date.now();
 		var script = document.createElement('script');
 		script.type = 'text/javascript';
 		script.src = this.currentProject + '/src/' + path;
@@ -464,7 +401,7 @@ panda = {
 		};
 		document.getElementsByTagName('head')[0].appendChild(script);
 
-		this.currentModuleScript = script;
+		this._moduleScripts[name] = script;
 	},
 
 	showProject: function(div) {
@@ -481,50 +418,155 @@ panda = {
 
 	newProject: function() {
 		var name = prompt('Project name:');
-		if (name) {
-			name = name.replace(/\s/g, ''); // Remove spaces
-			this.openFolder(this.createProject.bind(this, name));
-		}
+		if (!name) return;
+		name = name.replace(/\s/g, '');
+		if (!name) return;
 	},
 
-	loadEngineModules: function(callback) {
-		if (game.moduleQueue.length === 0) return callback();
-		console.log('Loading engine modules...');
-		game.ready = function() {
-			console.log('Done');
-			callback();
-		};
-		game.config.autoStart = false;
-		game._loadModules();
+	loadLastProject: function() {
+		var lastProject = localStorage.getItem(this.info.id + 'lastProject');
+		if (lastProject) this.loadProject(lastProject);
 	},
 
 	loadProject: function(dir) {
-		dir = '/Users/eemelikelokorpi/Sites/yle/peka_ostbricka';
-		dir = '/Users/eemelikelokorpi/Sites/kurupanda';
+		if (!dir) return;
 
-		$('#welcome').hide();
+		if (this.currentProject) {
+			var sure = confirm('Load new project?');
+			if (!sure) return;
+		}
 
-		if (game.moduleQueue.length > 0) {
-			this.loadEngineModules(this.loadProject.bind(this, dir));
-			return;
+		console.log('Loading project ' + dir);
+
+		localStorage.setItem(this.info.id + 'lastProject', dir);
+
+		this.currentProject = dir;
+
+		this.modules = {};
+		this.modules['game.main'] = {};
+
+		console.log('Loading config...');
+
+		try {
+			require(dir + '/src/game/config.js');	
+		}
+		catch(e) {
+			// Default config, if none found
+			global.pandaConfig = {
+				name: 'Untitled',
+				version: '0.0.0'
+			}
 		}
 		
-		this.currentProject = dir;
-		this.currentModule = 'game.main';
-		
-		$('#nav').show();
-		$('#main').show();
-		$('#editor').show();
-		$('#modules').show();
+		this.config = global.pandaConfig;
 
+		this.window.title = this.info.description + ' - ' + this.config.name + ' ' + this.config.version;
+
+		console.log('Loading modules...');
+		this.loadModuleData();
+	},
+
+	loadModuleData: function() {
+		for (var name in this.modules) {
+			if (this.modules[name].data) continue;
+
+			var file = this.currentProject + '/src/' + name.replace(/\./g, '/') + '.js';
+			console.log('Reading file ' + file);
+			this.fs.readFile(file, {
+				encoding: 'utf-8'
+			}, this.readModuleData.bind(this, name));
+			return;
+		}
+
+		console.log('Loading classes...');
+		this.getClassesFromModule();
+	},
+
+	getClassesFromModule: function() {
+		for (var name in this.modules) {
+			if (this.modules[name].classes) continue;
+
+			this.modules[name].classes = {};
+
+			console.log('Parsing module ' + name);
+
+			var data = this.esprima.parse(this.modules[name].data, {
+				range: true
+			});
+
+			var nodes = data.body[0].expression.arguments[0].body.body;
+
+			for (var i = 0; i < nodes.length; i++) {
+				var expName = nodes[i].expression.callee.property.name;
+				if (expName === 'createClass' || expName === 'createScene') {
+					var args = nodes[i].expression.arguments;
+					// console.log(args[0].value);
+					var lastArg = args[args.length - 1];
+					// console.log(lastArg);
+
+					var firstPropRange = lastArg.properties[0].range;
+					var lastPropRange = lastArg.properties[lastArg.properties.length - 1].range;
+
+					var strStart = firstPropRange[0];
+					var strLength = lastPropRange[1] - strStart;
+
+					var strData = this.modules[name].data.substr(lastArg.range[0], lastArg.range[1] - lastArg.range[0]);
+
+					// console.log(strData);
+					var className = args[0].value;
+					if (expName === 'createScene') className = 'Scene' + className;
+					this.modules[name].classes[className] = {
+						data: strData,
+						origData: strData
+					};
+				}
+			}
+
+			this.getClassesFromModule();
+
+			return;
+		}
+
+		this.updateModuleList();
+		this.editor.setValue('');
+	},
+
+	readModuleData: function(name, err, data) {
+		var requires = 0;
+
+		this.modules[name].data = data;
+
+		// Read required modules from data
+		// FIXME make this cleaner
+		var index = data.indexOf('.require(');
+		if (index !== -1) {
+			var patt = /([^)]+)/;
+			data = patt.exec(data.substr(index).replace('.require(', ''));
+			if (data) {
+				data = data[0].replace(/\s/g, '');
+				data = data.replace(/\'/g, '');
+				data = data.split(',');
+				for (var i = 0; i < data.length; i++) {
+					// Only include game modules
+					if (data[i].indexOf('game.') !== 0) continue;
+					this.modules[data[i]] = {};
+					requires++;
+				}
+			}
+		}
+
+		this.loadModuleData();
+	},
+
+	loadEditor: function() {
 		console.log('Loading editor...');
 
 		var textarea = document.createElement('textarea');
 		$('#editor .content').append(textarea);
 
-		var editor = CodeMirror.fromTextArea(textarea, {
+		this.editor = CodeMirror.fromTextArea(textarea, {
 			lineNumbers: true,
-			theme: this.config.editor.theme,
+			theme: 'base16-dark',
 			mode: 'javascript',
 			indentUnit: 4,
 			autofocus: true,
@@ -532,7 +574,7 @@ panda = {
 			keyMap: 'sublime',
 			autoCloseBrackets: true
 		});
-		editor.setOption('extraKeys', {
+		this.editor.setOption('extraKeys', {
 			'Ctrl-Tab': function() {
 				panda.toggleModules();
 			},
@@ -556,72 +598,69 @@ panda = {
 				cm.replaceSelection(clipboard.get('text'));
 			},
 			'Cmd-S': function(cm) {
-				if (!panda.currentClass) return;
-				if (cm.doc.history.lastSaveTime === cm.doc.history.lastModTime) {
-					console.log('Nothing to save');
-					return;
+				editor.saveChanges();
+			}
+		});
+		this.editor.on('change', this.onChange.bind(this));
+	},
+
+	onChange: function() {
+		if (this.currentClass) {
+			if (this.editor.doc.history.lastChangeTime && this.editor.doc.history.lastChangeTime < this.editor.doc.history.lastModTime) {
+				$(this.currentClassDiv).html(this.currentClass + '*');
+				this.modules[this.currentModule].classes[this.currentClass].changed = true;
+				this.editor.doc.history.lastChangeTime = this.editor.doc.history.lastModTime;
+			}
+
+			// Save data (also undo)
+			this.modules[this.currentModule].classes[this.currentClass].data = this.editor.getValue();
+		}
+	},
+
+	saveChanges: function() {
+		console.log('Saving changes');
+
+		if (this.currentModule && !this.currentClass) {
+			// New class
+			var className = prompt('New class name for ' + this.currentModule + ':');
+			if (className) className = className.replace(/[\s\W]/g, '');
+			if (className) className = className.substr(0, 24);
+			if (className && !this.modules[this.currentModule].classes[className]) {
+				// TODO insert new module
+				console.log('TODO');
+			}
+		}
+
+		for (var module in this.modules) {
+			var needToSave = false;
+			for (var className in this.modules[module].classes) {
+				var classObj = this.modules[module].classes[className];
+
+				if (classObj.changed) {
+					console.log('Saving class ' + className);
+					var classOrigData = classObj.origData;
+
+					// Save data
+					this.modules[module].data = this.modules[module].data.replace(classOrigData, classObj.data);
+
+					$(classObj.div).html(className);
+					classObj.origData = classObj.data;
+					classObj.changed = false;
+					needToSave = true;
 				}
-
-				cm.doc.history.lastSaveTime = cm.doc.history.lastModTime;
-				
-				panda.saveCurrentModule();
 			}
-		});
-		this.editor = editor;
-		this.editor.on('focus', function() {
-			// if (game.system) {
-			// 	game.system.pause();
-			// 	document.getElementById('pandaDebug').style.color = '#ac4142';
-			// }
-		});
-		console.log('Done');
 
-		this.toggleBrowser();
-	},
+			if (needToSave) {
+				var file = this.currentProject + '/src/' + module.replace(/\./g, '/') + '.js';
 
-	saveCurrentModule: function() {
-		console.log('Saving module ' + this.currentModule);
-
-		var module = game.modules[this.currentModule];
-
-		if (this.currentClass) module.classes[this.currentClass].content = this.editor.getValue();
-
-		var value = 'game.module(\n    \'' + this.currentModule + '\'\n)\n';
-
-		if (module.requires.length > 0) {
-			value += '.require(\n';
-			for (var i = 0; i < module.requires.length; i++) {
-				if (i > 0) value += ',\n';
-				var moduleName = module.requires[i];
-				value += '    \'' + moduleName + '\'';
+				console.log('Saving ' + file);
+				this.fs.writeFile(file, this.modules[module].data, {
+					encoding: 'utf-8'
+				}, function(err) {
+					if (err) console.log('Error saving module');
+				});
 			}
-			value += '\n)\n';
 		}
-
-		value += '.body(function() {\n\n';
-
-		for (var className in module.classes) {
-			value += 'game.createClass(\'' + className + '\', \'' + module.classes[className].extend + '\', {\n';
-			value += module.classes[className].content;
-			value += '\n});\n\n';
-		}
-
-		value += '});\n\n';
-
-		var file = this.currentProject + '/src/' + this.currentModule.replace(/\./g, '/') + '.js';
-
-		fs.writeFile(file, value, {
-			encoding: 'utf-8'
-		}, function(err) {
-			if (err) console.log('Error saving file');
-			else {
-				panda.reloadCurrentModule();
-			}
-		});
-	},
-
-	saveProjectSettings: function() {
-		console.log('saveProjectSettings');
 	},
 
 	createProject: function(name, dir) {
@@ -657,14 +696,14 @@ panda = {
 			});
 		}
 		
-		localStorage.setItem(this.id + 'projects', JSON.stringify(projects));
+		localStorage.setItem(info.id + 'projects', JSON.stringify(projects));
 	},
 
 	clearProjects: function() {
-		localStorage.setItem(this.id + 'projects', null);
+		localStorage.setItem(info.id + 'projects', null);
 	}
 };
 
 $(function() {
-	panda.init();
+	editor.init();
 });

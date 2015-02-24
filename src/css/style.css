@@ -3,22 +3,6 @@
     src: url(../font/Menlo-Regular.ttf);
 }
 
-::-webkit-scrollbar-track {
-      background-color: #b46868;
-} /* the new scrollbar will have a flat appearance with the set background color */
- 
-::-webkit-scrollbar-thumb {
-      background-color: rgba(0, 0, 0, 0.2); 
-} /* this will style the thumb, ignoring the track */
- 
-::-webkit-scrollbar-button {
-      background-color: #7c2929;
-} /* optionally, you can style the top and the bottom buttons (left and right for horizontal bars) */
- 
-::-webkit-scrollbar-corner {
-      background-color: black;
-} /* if both the vertical and the horizontal bars appear, then perhaps the right bottom corner also needs to be styled */
-
 html, body {
 	height: 100%;
 }
@@ -39,21 +23,6 @@ body {
     -ms-user-select: none;
     user-select: none;
     overflow: hidden;
-}
-
-#welcome {
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	text-align: center;
-}
-
-#welcome .content {
-}
-
-#welcome .logo {
-	margin: 20px auto;
-	display: block;
 }
 
 button {
@@ -104,47 +73,12 @@ h2 {
 	padding: 10px;
 }
 
-#nav {
-	background: #848e9d;
-	width: 42px;
-	height: 100%;
-	position: absolute;
-	display: none;
-}
-
-#nav a {
-	width: 100%;
-	height: 42px;
-	display: block;
-	text-align: center;
-}
-
-#nav a img {
-	margin-top: 5px;
-}
-
-#nav a:hover, #nav a.active {
-	background: #515e73;
-}
-
-#nav a.bottom {
-	position: absolute;
-	bottom: 0;
-}
-
 #main {
-	margin-left: 42px;
 	height: 100%;
-	display: none;
-}
-
-span.version {
-	float: right;
 }
 
 .tab {
 	background: #000;
-	display: none;
 	height: 100%;
 	float: left;
 	position: relative;
@@ -152,7 +86,7 @@ span.version {
 }
 
 .tab .content {
-	padding: 0px;
+	/*padding: 0px;*/
 	height: 100%;
 }
 
@@ -167,13 +101,6 @@ span.version {
 
 .tab .resize:hover {
 	cursor: col-resize;
-}
-
-canvas {
-	max-width: 100%;
-	max-height: 100%;
-	margin: auto;
-	display: block;
 }
 
 #modules {
@@ -191,7 +118,7 @@ canvas {
 }
 
 #modules button {
-	background: #333;
+	background: transparent;
 	color: #999;
 	box-shadow: none;
 	border-radius: 5px;
@@ -201,11 +128,11 @@ canvas {
 	padding: 0px;
 	padding-top: 0px;
 	border: solid 2px black;
+	text-transform: none;
 }
 
 #modules button:hover {
-	color: #333;
-	background: #999;
+	background: #333;
 }
 
 #modules button:active {
@@ -218,7 +145,7 @@ canvas {
 }
 
 #modules .class {
-	padding-left: 0px;
+	padding-left: 20px;
 }
 
 #modules .class:hover {
@@ -240,16 +167,8 @@ canvas {
 	display: none;
 }
 
-#browser {
-	width: 400px;
-}
-
 #editor {
-	background: #000;
-	width: 780px;
-}
-
-#editor .content {
-	padding: 0;
-	padding-right: 2px;
+	width: 100%;
+	position: absolute;
+	margin-left: 0px;
 }

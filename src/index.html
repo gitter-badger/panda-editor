@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Panda App</title>
+    <title>Panda Editor</title>
 
     <link rel="stylesheet" type="text/css" href="css/style.css">
     <script type="text/javascript" src="js/jquery-2.1.3.min.js"></script>
@@ -22,27 +22,8 @@
     <link rel="stylesheet" type="text/css" href="css/codemirror/theme/base16-dark.css">
     <link rel="stylesheet" type="text/css" href="js/codemirror/addon/hint/show-hint.css">
     <link rel="stylesheet" type="text/css" href="js/codemirror/addon/dialog/dialog.css">
-
-    <!-- Panda Engine -->
-    <script type="text/javascript" src="src/engine/core.js"></script>
 </head>
 <body>
-    <div id="welcome">
-        <div class="content">
-            <img src="img/pandatext.png" class="logo">
-            <button href="loadProject" class="big">Load project</button>
-        </div>
-    </div>
-
-    <div id="nav">
-        <a href="toggleEditor"><img src="img/icons/pencil.png"></a>
-        <a href="toggleModules"><img src="img/icons/bolt.png"></a>
-        <a href="toggleAssets"><img src="img/icons/image.png"></a>
-        <a href="toggleBrowser"><img src="img/icons/gamecontroller.png"></a>
-        <a href="toggleSettings"><img src="img/icons/tools.png"></a>
-        <a href="" class="bottom"><img src="img/icons/gear.png"></a>
-    </div>
-
     <div id="main">
         <div id="modules" class="tab">
             <div class="content">
@@ -52,31 +33,8 @@
             <div class="resize"></div>
         </div>
 
-        <div id="assets" class="tab">
-            <h1>Assets</h1>
-            <div class="content"></div>
-            <div class="resize"></div>
-        </div>
-
         <div id="editor" class="tab">
             <div class="content"></div>
-            <div class="resize"></div>
-        </div>
-
-        <div id="settings" class="tab">
-            <h1>Settings</h1>
-            <div class="content">
-                <form>
-                    <label for="project_name">Name:</label>
-                    <input type="text" id="project_name">
-                    <button href="saveProjectSettings">Save settings</button>
-                </form>
-            </div>
-            <div class="resize"></div>
-        </div>
-
-        <div id="browser" class="tab">
-            <canvas id="canvas"></canvas>
         </div>
     </div>
 </body>
