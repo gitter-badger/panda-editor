@@ -16,8 +16,8 @@ var editor = {
 		window.ondragleave = this.dragleave.bind(this);
 		window.ondrop = this.filedrop.bind(this);
 
-		this.onResize();
 		this.loadEditor();
+		this.onResize();
 
 		this.clipboard = this.gui.Clipboard.get();
 
@@ -100,6 +100,8 @@ var editor = {
 
 		$('#editor').width(editorWidth);
 		$('#editor').css('margin-left', modulesWidth + 'px');
+
+		this.editor.resize();
 	},
 
 	toggleModules: function() {
@@ -186,8 +188,8 @@ var editor = {
 		var classObj = this.getCurrentClassObject();
 		$(classObj.div).addClass('current');
 
-		this.editor.setValue(classObj.data);
-		this.editor.doc.clearHistory();
+		this.editor.setValue(classObj.data, -1);
+		if (this.editor.doc) this.editor.doc.clearHistory();
 		this.editor.focus();
 	},
 
@@ -371,6 +373,17 @@ var editor = {
 
 	loadEditor: function() {
 		console.log('Loading editor...');
+
+		this.editor = ace.edit('editor');
+		this.editor.setTheme('ace/theme/sunburst');
+		this.editor.getSession().setMode('ace/mode/javascript');
+		this.editor.getSession().setUseWorker(false);
+		this.editor.setShowPrintMargin(false);
+		this.editor.setHighlightActiveLine(false);
+		this.editor.setShowFoldWidgets(false);
+		this.editor.focus();
+
+		return;
 
 		var textarea = document.createElement('textarea');
 		$('#editor .content').append(textarea);
