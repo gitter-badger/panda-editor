@@ -13,9 +13,9 @@ html, body {
 
 body {
 	margin: 0;
-	font: 14px/1.5 Menlo, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+	font-family: Menlo;
 	color: #fff;
-	background: #b9bec7;
+	background: #000;
 	-webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -25,60 +25,7 @@ body {
     overflow: hidden;
 }
 
-button {
-	line-height: 11px;
-	font-weight: bold;
-	font-size: 14px;
-	padding: 10px 30px;
-	text-transform: uppercase;
-	border-style: none;
-	border-radius: 5px;
-	box-shadow: 0px 2px 0px #848e9d;
-	background: #4f5d73;
-	color: #fff;
-	margin-right: 10px;
-}
-
-button.big {
-	line-height: 30px;
-	font-size: 18px;
-}
-
-button:hover {
-	background: #fff;
-	color: #4f5d73;
-	cursor: pointer;
-}
-
-button:active {
-	background: #4f5d73;
-	color: #000;
-}
-
-h1 {
-	padding: 11px;
-	margin-top: 0px;
-	font-weight: bold;
-	margin-bottom: 0px;
-	color: #848e9d;
-	text-transform: uppercase;
-	border-bottom: 2px dashed #848e9d;
-}
-
-h2 {
-	color: #fff;
-	font-size: 15px;
-	margin: 0;
-	line-height: 25px;
-	padding: 10px;
-}
-
-#main {
-	height: 100%;
-}
-
 .tab {
-	background: #000;
 	height: 100%;
 	float: left;
 	position: relative;
@@ -86,7 +33,6 @@ h2 {
 }
 
 .tab .content {
-	/*padding: 0px;*/
 	height: 100%;
 }
 
@@ -145,7 +91,7 @@ h2 {
 }
 
 #modules .class {
-	padding-left: 20px;
+	padding-left: 25px;
 }
 
 #modules .class:hover {
@@ -175,5 +121,4 @@ h2 {
 	position: absolute;
 	margin-left: 0px;
 	font-family: Menlo;
-	font-size: 19px;
 }
