@@ -94,18 +94,18 @@ body {
 	padding-left: 25px;
 }
 
-#modules .class:hover {
+#modules .list div:hover {
 	cursor: pointer;
-	background: #151515;
+	background: rgba(255, 255, 255, 0.10);
 }
 
 #modules .class.changed {
 	color: #f4bf75;
 }
 
-#modules .class.current {
+#modules .list div.current {
 	color: #ac4142;
-	background: #151515;
+	background: rgba(255, 255, 255, 0.10);
 }
 
 #modules .list button {

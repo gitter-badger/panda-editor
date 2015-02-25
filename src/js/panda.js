@@ -1,3 +1,7 @@
+// TODO
+// Remove module
+// Add module global code (assets etc)
+
 var editor = {
     info: require('./package.json'),
     fork: require('child_process').fork,
@@ -35,23 +39,25 @@ var editor = {
     initEditor: function() {
         console.log('Loading editor...');
 
-        this.changeFontSize(this.settings.fontSize);
+        this.currentFontSize = this.settings.fontSize;
+        this.changeFontSize(0);
 
         require('ace/config').setDefaultValue('session', 'useWorker', false);
-        // require('ace/config').setDefaultValue('session', 'useWorker', false);
 
         this.editor = ace.edit('editor');
         this.editor.setTheme('ace/theme/sunburst');
-        this.editor.setShowPrintMargin(false);
-        this.editor.setHighlightActiveLine(false);
-        this.editor.setShowFoldWidgets(false);
+        this.editor.getSession().setMode('ace/mode/javascript');
         this.editor.$blockScrolling = Infinity;
         
         this.editor.setOptions({
             enableBasicAutocompletion: true,
             enableSnippets: true,
-            enableLiveAutocompletion: true
+            enableLiveAutocompletion: true,
+            showPrintMargin: false,
+            displayIndentGuides: true,
+            showFoldWidgets: false
         });
+        
         this.editor.commands.addCommand({
             name: 'toggleModules',
             bindKey: { mac: 'Ctrl-Tab', win: 'Ctrl-Tab' },
@@ -82,8 +88,22 @@ var editor = {
             bindKey: { mac: 'Alt-Shift-Up', win: 'Alt-Shift-Up' },
             exec: this.editPrevClass.bind(this)
         });
-        this.tempSession = this.editor.getSession();
-        this.editor.getSession().setMode('ace/mode/javascript');
+        this.editor.commands.addCommand({
+            name: 'setFontBigger',
+            bindKey: { mac: 'Cmd-=', win: 'Ctrl-=' },
+            exec: this.changeFontSize.bind(this, 1)
+        });
+        this.editor.commands.addCommand({
+            name: 'setFontSmaller',
+            bindKey: { mac: 'Cmd--', win: 'Ctrl--' },
+            exec: this.changeFontSize.bind(this, -1)
+        });
+        this.editor.commands.addCommand({
+            name: 'buildProject',
+            bindKey: { mac: 'Cmd-B', win: 'Ctrl-B' },
+            exec: this.buildProject.bind(this)
+        });
+
         this.editor.focus();
     },
 
@@ -107,7 +127,35 @@ var editor = {
     editPrevClass: function() {
         if (!this.currentModule || !this.currentClass) return;
 
-        console.log('TODO');
+        var prevModule = this.currentModule;
+        var prevClass = this.getPrevClass(prevModule, this.currentClass);
+
+        while (!prevClass) {
+            prevModule = this.getPrevModule(prevModule);
+            if (!prevModule) return;
+            prevClass = this.getPrevClass(prevModule);
+        }
+
+        this.editClass(prevClass, prevModule);
+    },
+
+    getPrevClass: function(inModule, beforeClass) {
+        var lastClass = false;
+        for (var className in this.modules[inModule].classes) {
+            if (className === beforeClass) return lastClass;
+            lastClass = className;
+        }
+        if (!beforeClass) return className;
+        return false;
+    },
+
+    getPrevModule: function(forModule) {
+        var prevModule = false;
+        for (var module in this.modules) {
+            if (module === forModule) return prevModule;
+            prevModule = module;
+        }
+        return false;
     },
 
     editNextClass: function() {
@@ -203,10 +251,7 @@ var editor = {
     },
 
     toggleModules: function() {
-        console.log('togg');
-        var tab = $('#modules');
-        if (tab.is(':visible')) tab.hide();
-        else tab.show();
+        $('#modules').toggle();
         this.onResize();
     },
 
@@ -230,8 +275,8 @@ var editor = {
         // Sort modules
         this.modules = this.ksort(this.modules);
 
+        // Sort classes
         for (var module in this.modules) {
-            // Sort classes
             this.modules[module].classes = this.ksort(this.modules[module].classes);
         }
 
@@ -240,6 +285,7 @@ var editor = {
             var div = document.createElement('div');
             $(div).addClass('module');
             $(div).html(name.substr(5));
+            $(div).click(this.editClass.bind(this, 'global', name));
             $(div).appendTo($('#modules .content .list'));
 
             this.modules[name].div = div;
@@ -265,13 +311,14 @@ var editor = {
         }
     },
 
-    changeFontSize: function(size) {
-        if (size < 14) size = 14;
-        if (size > 23) size = 23;
-        this.currentFontSize = size;
-        $('#editor').css('font-size', size + 'px');
-        $('#modules').css('font-size', size + 'px');
-        $('#modules').css('line-height', (size + 8) + 'px');
+    changeFontSize: function(amount) {
+        this.currentFontSize += amount;
+        if (this.currentFontSize < 14) this.currentFontSize = 14;
+        if (this.currentFontSize > 23) this.currentFontSize = 23;
+        
+        $('#editor').css('font-size', this.currentFontSize + 'px');
+        $('#modules').css('font-size', this.currentFontSize + 'px');
+        $('#modules').css('line-height', (this.currentFontSize + 8) + 'px');
     },
 
     newModule: function() {
@@ -319,7 +366,7 @@ var editor = {
                 if (wantSave) return this.saveChanges();    
             }
         }
-        if (this.currentClass === name) return;
+        if (this.currentClass === name && this.currentModule === module) return;
 
         var classObj = this.getCurrentClassObject();
         if (classObj) $(classObj.div).removeClass('current');
@@ -330,33 +377,31 @@ var editor = {
         $(classObj.div).addClass('current');
 
         this.editor.setSession(classObj.session);
-        // this.currentClass = null;
-        // this.editor.setValue(classObj.data, -1);
-        // this.currentClass = name;
         this.editor.focus();
 
         this.saveCurrentState();
     },
 
-    buildProject: function(dir) {
+    buildProject: function() {
         if (this._building) return;
         this._building = true;
 
-        this.status('Building...');
-        $('#loader').show();
+        var sure = confirm('Build project?');
+        if (!sure) return;
 
-        var worker = fork('js/worker.js', { execPath: './node' });
+        console.log('Building project...');
+
+        var worker = this.fork('js/worker.js', { execPath: './node' });
         worker.on('message', this.buildComplete.bind(this));
         worker.on('exit', this.buildComplete.bind(this));
-        worker.send(['build', dir]);
+        worker.send(['build', this.currentProject]);
     },
 
     buildComplete: function(err) {
         this._building = false;
-        $('#loader').hide();
         
-        if (err) this.error(err);
-        else this.success('Build completed');
+        if (err) console.log('Error: ' + err);
+        else console.log('Build completed');
     },
 
     loadLastProject: function() {
@@ -427,6 +472,8 @@ var editor = {
 
         this.modules[name].data = data;
         this.modules[name].requires = [];
+        var session = ace.createEditSession('', 'ace/mode/javascript');
+        this.modules[name].session = session;
 
         // Read required modules from data
         // FIXME use esprima
@@ -495,7 +542,6 @@ var editor = {
         }
 
         this.updateModuleList();
-        // this.editor.setValue('');
 
         var lastClass = this.getStorage('lastClass');
         var lastModule = this.getStorage('lastModule');
@@ -530,6 +576,7 @@ var editor = {
 
     getCurrentClassObject: function() {
         if (!this.currentClass || !this.currentModule) return false;
+        if (this.currentClass === 'global') return this.modules[this.currentModule];
         return this.modules[this.currentModule].classes[this.currentClass];
     },
 
@@ -600,7 +647,9 @@ var editor = {
 
         var classObj = this.getCurrentClassObject();
         $(classObj.div).addClass('current');
+        var curPos = this.editor.getCursorPosition();
         this.editor.setSession(classObj.session);
+        this.editor.gotoLine(curPos.row + 1, curPos.column);
 
         return true;
     },
