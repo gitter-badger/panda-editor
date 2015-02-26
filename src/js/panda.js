@@ -113,15 +113,24 @@ var editor = {
         var menubar = new this.gui.Menu({ type: 'menubar' });
         menubar.createMacBuiltin(this.info.description);
 
-        var file = new this.gui.Menu();
-        file.append(new this.gui.MenuItem({ label: 'New' }));
+        // Project menu
+        var project = new this.gui.Menu();
+        project.append(new this.gui.MenuItem({ label: 'Build project', click: this.buildProject.bind(this) }));
+        project.append(new this.gui.MenuItem({ label: 'Create new project', click: this.createProject.bind(this) }));
+        project.append(new this.gui.MenuItem({ label: 'Update engine', click: this.updateEngine.bind(this) }));
+        
+        // Help menu
         var help = new this.gui.Menu();
         help.append(new this.gui.MenuItem({ label: 'About' }));
         
-        menubar.insert(new this.gui.MenuItem({ label: 'File', submenu: file }), 1);
+        menubar.insert(new this.gui.MenuItem({ label: 'Project', submenu: project }), 1);
         menubar.append(new this.gui.MenuItem({ label: 'Help', submenu: help }));
 
         this.window.menu = menubar;
+    },
+
+    updateEngine: function() {
+        console.log('TODO');
     },
 
     editPrevClass: function() {
@@ -383,6 +392,7 @@ var editor = {
     },
 
     buildProject: function() {
+        if (!this.currentProject) return;
         if (this._building) return;
         this._building = true;
 
@@ -406,7 +416,6 @@ var editor = {
 
     loadLastProject: function() {
         var lastProject = this.getStorage('lastProject', true);
-        console.log(lastProject);
         if (lastProject) this.loadProject(lastProject);
     },
 
@@ -418,16 +427,7 @@ var editor = {
             if (!sure) return;
         }
 
-        this.currentClass = this.currentModule = null;
-
         console.log('Loading project ' + dir);
-
-        this.currentProject = dir;
-
-        this.setStorage('lastProject', this.currentProject, true);
-
-        this.modules = {};
-        this.modules['game.main'] = {};
 
         console.log('Loading config...');
 
@@ -435,12 +435,14 @@ var editor = {
             require(dir + '/src/game/config.js');   
         }
         catch(e) {
-            // Default config, if none found
-            global.pandaConfig = {
-                name: 'Untitled',
-                version: '0.0.0'
-            }
+            return console.log('Config not found');
         }
+
+        this.currentClass = this.currentModule = null;
+        this.currentProject = dir;
+        this.setStorage('lastProject', this.currentProject, true);
+        this.modules = {};
+        this.modules['game.main'] = {};
         
         this.config = global.pandaConfig;
 
@@ -468,6 +470,8 @@ var editor = {
     },
 
     readModuleData: function(name, err, data) {
+        if (err) return console.log('Module ' + name + ' not found');
+
         var requires = 0;
 
         this.modules[name].data = data;
@@ -755,28 +759,33 @@ var editor = {
         }
     },
 
-    createProject: function(name, dir) {
+    createProject: function() {
         if (this._creating) return;
         this._creating = true;
-        $('#loader').show();
+        
+        var name = prompt('Project name:');
+        if (!name) {
+            this._creating = false;
+            return;
+        }
 
-        this.status('Creating new project...');
+        console.log('Creating new project...');
 
-        var worker = fork('js/worker.js', { execPath: './node' });
-        worker.on('message', this.projectCreated.bind(this, dir + '/' + name));
+        var dir = '/Users/eemelikelokorpi/Sites/temp/';
+
+        var worker = this.fork('js/worker.js', { execPath: './node' });
+        worker.on('message', this.projectCreated.bind(this, dir + name));
         worker.on('exit', this.projectCreated.bind(this, ''));
         worker.send(['create', dir, [name]]);
     },
 
     projectCreated: function(dir, err) {
         this._creating = false;
-        $('#loader').hide();
 
-        if (err) this.error(err);
+        if (err) console.log(err);
         else {
-            this.success('Project created');
-            this.initProject(dir);
-            this.saveProjects();
+            console.log('Project created at: ' + dir);
+            this.loadProject(dir);
         }
     }
 };
