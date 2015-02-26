@@ -122,3 +122,14 @@ body {
 	margin-left: 0px;
 	font-family: Menlo;
 }
+
+#loader {
+	position: absolute;
+	right: 10px;
+	bottom: 10px;
+	z-index: 9999;
+	display: none;
+	-webkit-animation:spin 4s linear infinite;
+}
+
+@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }

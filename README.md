@@ -1,19 +1,18 @@
 # Panda Editor
 
-### Powerful code editor for Panda.js game development
+### Code editor for Panda game development
 
-With Panda Editor, you can speed up your development and use Toolkit features right from your editor.
+## Download
 
-## Install
-
-- Coming soon
+- _Coming soon_
 
 ## Features
 
-- Split your code into classes and modules
-- Code more efficiently with keyboard shortcuts
-- Build your project straight from the editor
-- Change layout with different themes
+- Automatically split your code into classes
+- Autocomplete with Panda classes and methods
+- Snippets for common Panda functions
+- Build your project with single mouse click
+- Multiple themes to make the editor fit your eye
+- High performance code editor based on [Ace](http://ace.c9.io/)
+- Easily add assets to your game with drag & drop _(coming)_
 - See changes instantly in your game _(coming)_
-
-

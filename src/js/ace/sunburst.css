@@ -65,7 +65,11 @@
 }
 
 .ace-sunburst .ace_support.ace_function {
-  color: #DAD085
+  color: #DAD085;
+}
+
+.ace-sunburst .ace_function {
+  color: #89bdff;
 }
 
 .ace-sunburst .ace_support.ace_constant {

@@ -1,6 +1,10 @@
 // TODO
 // Remove module
 // Add module global code (assets etc)
+// Disable keyboard when loading IMPORTANT!
+
+// Instead of editing modules, make one "global" session
+// that is saved into "game.main"
 
 var editor = {
     info: require('./package.json'),
@@ -168,7 +172,9 @@ var editor = {
     },
 
     editNextClass: function() {
-        if (!this.currentModule || !this.currentClass) return;
+        if (!this.currentModule || !this.currentClass) {
+            this.currentModule = 'game.main';
+        }
 
         var nextModule = this.currentModule;
         var nextClass = this.getNextClass(nextModule, this.currentClass);
@@ -213,8 +219,15 @@ var editor = {
         event.preventDefault();
         var entry = event.dataTransfer.items[0].webkitGetAsEntry();
         if (!entry) return;
+        if (this.loading) return;
         if (entry.isDirectory) {
             var path = event.dataTransfer.files[0].path;
+            
+            if (this.currentProject) {
+                var sure = confirm('Load new project? (Changes will be lost)');
+                if (!sure) return;
+            }
+
             this.loadProject(path); 
         }
     },
@@ -294,7 +307,7 @@ var editor = {
             var div = document.createElement('div');
             $(div).addClass('module');
             $(div).html(name.substr(5));
-            $(div).click(this.editClass.bind(this, 'global', name));
+            $(div).click(this.editClass.bind(this, null, name));
             $(div).appendTo($('#modules .content .list'));
 
             this.modules[name].div = div;
@@ -369,12 +382,6 @@ var editor = {
     },
 
     editClass: function(name, module) {
-        if (this.currentModule && !this.currentClass) {
-            if (this.editor.getSession().getValue() !== '') {
-                var wantSave = confirm('Save changes to new class?');
-                if (wantSave) return this.saveChanges();    
-            }
-        }
         if (this.currentClass === name && this.currentModule === module) return;
 
         var classObj = this.getCurrentClassObject();
@@ -387,18 +394,23 @@ var editor = {
 
         this.editor.setSession(classObj.session);
         this.editor.focus();
+        var curPos = this.editor.getCursorPosition();
+        if (curPos.row === 0 && curPos.column === 0) {
+            this.editor.gotoLine(2);
+            this.editor.navigateLineEnd();
+        }
 
         this.saveCurrentState();
     },
 
     buildProject: function() {
         if (!this.currentProject) return;
-        if (this._building) return;
-        this._building = true;
+        if (this.loading) return;
 
         var sure = confirm('Build project?');
         if (!sure) return;
 
+        this.showLoader();
         console.log('Building project...');
 
         var worker = this.fork('js/worker.js', { execPath: './node' });
@@ -408,9 +420,9 @@ var editor = {
     },
 
     buildComplete: function(err) {
-        this._building = false;
+        this.hideLoader();
         
-        if (err) console.log('Error: ' + err);
+        if (err) console.error(err);
         else console.log('Build completed');
     },
 
@@ -421,11 +433,7 @@ var editor = {
 
     loadProject: function(dir) {
         if (!dir) return;
-
-        if (this.currentProject) {
-            var sure = confirm('Load new project?');
-            if (!sure) return;
-        }
+        if (this.loading) return;
 
         console.log('Loading project ' + dir);
 
@@ -435,8 +443,10 @@ var editor = {
             require(dir + '/src/game/config.js');   
         }
         catch(e) {
-            return console.log('Config not found');
+            return console.error('Config not found');
         }
+
+        this.showLoader();
 
         this.currentClass = this.currentModule = null;
         this.currentProject = dir;
@@ -476,8 +486,7 @@ var editor = {
 
         this.modules[name].data = data;
         this.modules[name].requires = [];
-        var session = ace.createEditSession('', 'ace/mode/javascript');
-        this.modules[name].session = session;
+        this.modules[name].name = name.substr(5);
 
         // Read required modules from data
         // FIXME use esprima
@@ -517,7 +526,17 @@ var editor = {
             var body = data.body[0].expression.arguments[0].body;
             var nodes = body.body;
 
+            var moduleData = '';
+
             for (var i = 0; i < nodes.length; i++) {
+                if (!nodes[i].expression) {
+                    moduleData += this.modules[name].data.substr(nodes[i].range[0], nodes[i].range[1] - nodes[i].range[0]) + '\n\n';
+                    continue;
+                }
+                if (!nodes[i].expression.callee) {
+                    moduleData += this.modules[name].data.substr(nodes[i].expression.range[0], nodes[i].expression.range[1] - nodes[i].expression.range[0]) + ';\n\n';
+                    continue;
+                }
                 var expName = nodes[i].expression.callee.property.name;
                 if (expName === 'createClass' || expName === 'createScene') {
                     var args = nodes[i].expression.arguments;
@@ -539,7 +558,14 @@ var editor = {
 
                     this.newClassObject(className, name, strData);
                 }
+                else {
+                    moduleData += this.modules[name].data.substr(nodes[i].expression.range[0], nodes[i].expression.range[1] - nodes[i].expression.range[0]) + ';\n\n';
+                }
             }
+        
+            var session = ace.createEditSession(moduleData, 'ace/mode/javascript');
+            session.on('change', this.onChange.bind(this, this.modules[name]));
+            this.modules[name].session = session;
 
             this.getClassesFromModule();
             return;
@@ -552,6 +578,11 @@ var editor = {
         if (this.modules[lastModule] && this.modules[lastModule].classes[lastClass]) {
             this.editClass(lastClass, lastModule);
         }
+        else {
+            this.editNextClass();
+        }
+
+        this.hideLoader();
     },
 
     newClassObject: function(className, module, data) {
@@ -579,24 +610,9 @@ var editor = {
     },
 
     getCurrentClassObject: function() {
-        if (!this.currentClass || !this.currentModule) return false;
-        if (this.currentClass === 'global') return this.modules[this.currentModule];
+        if (!this.currentClass && !this.currentModule) return false;
+        if (!this.currentClass) return this.modules[this.currentModule];
         return this.modules[this.currentModule].classes[this.currentClass];
-    },
-
-    cut: function() {
-        this.copy();
-        this.editor.replaceSelection('');
-    },
-
-    copy: function() {
-        this.clipboard.set(this.editor.getSelection(), 'text');
-    },
-
-    paste: function() {
-        var data = this.clipboard.get('text');
-        data = data.replace(/^[\s]*/, ''); // Remove whitespace from start
-        this.editor.replaceSelection(data);
     },
 
     onChange: function(classObj, event) {
@@ -610,24 +626,6 @@ var editor = {
             classObj.changed = true;
             $(classObj.div).html(classObj.name + '*');
             $(classObj.div).addClass('changed');
-        }
-        else if (!hasUndo && classObj.changed) {
-            // classObj.changed = false;
-            // $(classObj.div).html(classObj.name);
-            // $(classObj.div).removeClass('changed');   
-        }
-        return;
-
-        if (this.currentClass) {
-            var classObj = this.getCurrentClassObject();
-            if (!classObj.changed) {
-                $(classObj.div).html(this.currentClass + '*');
-                $(classObj.div).addClass('changed');
-                classObj.changed = true;
-            }
-
-            // Save data (also undo)
-            classObj.data = this.editor.getValue();
         }
     },
 
@@ -685,12 +683,12 @@ var editor = {
 
             if (this.modules[module].changed) needToSave = true;
 
-            if (this.currentModule === module && !this.currentClass) {
-                if (this.saveNewClass()) {
-                    needToSave = true;
-                    needUpdate = true;
-                }
-            }
+            // if (this.currentModule === module && !this.currentClass) {
+            //     if (this.saveNewClass()) {
+            //         needToSave = true;
+            //         needUpdate = true;
+            //     }
+            // }
 
             for (var className in this.modules[module].classes) {
                 var classObj = this.modules[module].classes[className];
@@ -721,6 +719,8 @@ var editor = {
                 }
                 data += '.body(function() {\n\n';
 
+                data += this.modules[module].session.getValue() + '\n';
+
                 for (var className in this.modules[module].classes) {
                     var funcName = 'createClass';
                     var strClassName = className;
@@ -734,8 +734,6 @@ var editor = {
                 }
 
                 data += '});\n';
-
-                this.modules[module].changed = false;
 
                 console.log('Writing file ' + file);
                 this.fs.writeFile(file, data, {
@@ -757,17 +755,26 @@ var editor = {
             $(classObj.div).removeClass('changed');
             $(classObj.div).html(className);
         }
+
+        this.modules[module].changed = false;
+        $(this.modules[module].div).removeClass('changed');
+        $(this.modules[module].div).html(this.modules[module].name);
     },
 
     createProject: function() {
-        if (this._creating) return;
-        this._creating = true;
+        if (this.loading) return;
         
-        var name = prompt('Project name:');
-        if (!name) {
-            this._creating = false;
-            return;
+        if (this.currentProject) {
+            var sure = confirm('Create new project? (Changes will be lost)');
+            if (!sure) return;
         }
+
+        var name = prompt('Project name:');
+        if (!name) return;
+
+        this.currentProject = null;
+
+        this.showLoader();
 
         console.log('Creating new project...');
 
@@ -780,13 +787,23 @@ var editor = {
     },
 
     projectCreated: function(dir, err) {
-        this._creating = false;
+        this.hideLoader();
 
-        if (err) console.log(err);
+        if (err) console.error(err);
         else {
-            console.log('Project created at: ' + dir);
+            console.log('Project created at ' + dir);
             this.loadProject(dir);
         }
+    },
+
+    showLoader: function() {
+        this.loading = true;
+        $('#loader').show();
+    },
+
+    hideLoader: function() {
+        this.loading = false;
+        $('#loader').hide();
     }
 };
 

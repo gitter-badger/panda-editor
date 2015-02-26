@@ -6,6 +6,12 @@ snippet proto\n\
 	${1:class_name}.prototype.${2:method_name} = function(${3:first_argument}) {\n\
 		${4:// body...}\n\
 	};\n\
+snippet addTimer\n\
+	addTimer(${1:1000}, ${2:callback}, ${3:repeat});\n\
+snippet addObject\n\
+	addObject(${1:object});\n\
+snippet addTween\n\
+	addTween(${1:object}, {${2:props}}, ${3:time}, ${4:settings});\n\
 # Function\n\
 snippet fun\n\
 	function ${1?:function_name}(${2:argument}) {\n\

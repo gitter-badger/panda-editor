@@ -68,6 +68,10 @@ var JavaScriptHighlightRules = function(options) {
             "isNaN|parseFloat|parseInt|"                                               +
             "JSON|Math|"                                                               + // Other
             "this|arguments|prototype|window|document"                                 , // Pseudo
+        "function":
+            "game|Analytics|Animation|Audio|BaseTexture|BitmapText|Body|Camera|Circle|Class|CollisionSolver|Container|Core|Debug|DebugDraw|DisplayObject|Emitter|Graphics|Keyboard|Loader|Particle|Point|Pool|Rectangle|RenderTexture|Scene|Spine|Sprite|SpriteSheet|Storage|System|Text|Texture|TilingSprite|Timer|Tween|TweenEngine|TweenGroup|Vector|Video|World",
+        "method":
+            "addAsset|addAttributes|addAudio|createClass|createScene|fullscreen|getJSON|getTexture|removeAsset|addEmitter|removeEmitter|removeObject|removeTimer",
         "keyword":
             "const|yield|import|get|set|" +
             "break|case|catch|continue|default|delete|do|else|finally|for|function|" +
