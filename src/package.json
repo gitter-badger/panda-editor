@@ -1,7 +1,7 @@
 {
-  "name": "panda.js-app",
+  "name": "panda.js-editor",
   "version": "0.1.0",
-  "id": "net.pandajs.app",
+  "id": "net.pandajs.editor",
   "description": "Panda Editor",
   "main": "index.html",
   "window": {
