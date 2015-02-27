@@ -1,10 +1,5 @@
 // TODO
 // Remove module
-// Add module global code (assets etc)
-// Disable keyboard when loading IMPORTANT!
-
-// Instead of editing modules, make one "global" session
-// that is saved into "game.main"
 
 var editor = {
     info: require('./package.json'),
@@ -12,8 +7,11 @@ var editor = {
     gui: require('nw.gui'),
     fs: require('fs'),
     esprima: require('esprima'),
+    express: require('express'),
+
     settings: {
-        fontSize: 16
+        fontSize: 16,
+        port: 3000
     },
 
     init: function() {
@@ -94,7 +92,7 @@ var editor = {
         });
         this.editor.commands.addCommand({
             name: 'setFontBigger',
-            bindKey: { mac: 'Cmd-=', win: 'Ctrl-=' },
+            bindKey: { mac: 'Cmd-+', win: 'Ctrl-+' },
             exec: this.changeFontSize.bind(this, 1)
         });
         this.editor.commands.addCommand({
@@ -107,8 +105,24 @@ var editor = {
             bindKey: { mac: 'Cmd-B', win: 'Ctrl-B' },
             exec: this.buildProject.bind(this)
         });
+        this.editor.commands.addCommand({
+            name: 'newProject',
+            bindKey: { mac: 'Cmd-P', win: 'Ctrl-P' },
+            exec: this.createProject.bind(this)
+        });
+        this.editor.commands.addCommand({
+            name: 'reloadGame',
+            bindKey: { mac: 'Cmd-R', win: 'Ctrl-R' },
+            exec: this.reloadGame.bind(this)
+        });
 
         this.editor.focus();
+    },
+
+    reloadGame: function() {
+        if (!this.io) return;
+        console.log('Emit reloadGame');
+        this.io.emit('reloadGame');
     },
 
     initMenu: function() {
@@ -119,6 +133,8 @@ var editor = {
 
         // Project menu
         var project = new this.gui.Menu();
+        project.append(new this.gui.MenuItem({ label: 'Open in browser', click: this.viewProject.bind(this) }));
+        project.append(new this.gui.MenuItem({ label: 'Edit config', click: this.editConfig.bind(this) }));
         project.append(new this.gui.MenuItem({ label: 'Build project', click: this.buildProject.bind(this) }));
         project.append(new this.gui.MenuItem({ label: 'Create new project', click: this.createProject.bind(this) }));
         project.append(new this.gui.MenuItem({ label: 'Update engine', click: this.updateEngine.bind(this) }));
@@ -133,7 +149,15 @@ var editor = {
         this.window.menu = menubar;
     },
 
+    viewProject: function() {
+        this.gui.Shell.openExternal('http://localhost:' + this.settings.port + '/dev.html');
+    },
+
     updateEngine: function() {
+        console.log('TODO');
+    },
+
+    editConfig: function() {
         console.log('TODO');
     },
 
@@ -303,12 +327,13 @@ var editor = {
         }
 
         $('#modules .content .list').html('');
+
         for (var name in this.modules) {
             var div = document.createElement('div');
             $(div).addClass('module');
             $(div).html(name.substr(5));
-            $(div).click(this.editClass.bind(this, null, name));
             $(div).appendTo($('#modules .content .list'));
+            $(div).click(this.editClass.bind(this, null, name));
 
             this.modules[name].div = div;
 
@@ -394,8 +419,9 @@ var editor = {
 
         this.editor.setSession(classObj.session);
         this.editor.focus();
+        
         var curPos = this.editor.getCursorPosition();
-        if (curPos.row === 0 && curPos.column === 0) {
+        if (this.currentClass && curPos.row === 0 && curPos.column === 0) {
             this.editor.gotoLine(2);
             this.editor.navigateLineEnd();
         }
@@ -433,6 +459,7 @@ var editor = {
 
     loadProject: function(dir) {
         if (!dir) return;
+        if (dir === this.currentProject) return;
         if (this.loading) return;
 
         console.log('Loading project ' + dir);
@@ -486,7 +513,6 @@ var editor = {
 
         this.modules[name].data = data;
         this.modules[name].requires = [];
-        this.modules[name].name = name.substr(5);
 
         // Read required modules from data
         // FIXME use esprima
@@ -530,11 +556,9 @@ var editor = {
 
             for (var i = 0; i < nodes.length; i++) {
                 if (!nodes[i].expression) {
-                    moduleData += this.modules[name].data.substr(nodes[i].range[0], nodes[i].range[1] - nodes[i].range[0]) + '\n\n';
                     continue;
                 }
                 if (!nodes[i].expression.callee) {
-                    moduleData += this.modules[name].data.substr(nodes[i].expression.range[0], nodes[i].expression.range[1] - nodes[i].expression.range[0]) + ';\n\n';
                     continue;
                 }
                 var expName = nodes[i].expression.callee.property.name;
@@ -559,19 +583,55 @@ var editor = {
                     this.newClassObject(className, name, strData);
                 }
                 else {
-                    moduleData += this.modules[name].data.substr(nodes[i].expression.range[0], nodes[i].expression.range[1] - nodes[i].expression.range[0]) + ';\n\n';
+
                 }
             }
-        
-            var session = ace.createEditSession(moduleData, 'ace/mode/javascript');
-            session.on('change', this.onChange.bind(this, this.modules[name]));
-            this.modules[name].session = session;
+
+            this.modules[name].session = ace.createEditSession(moduleData, 'ace/mode/javascript');
 
             this.getClassesFromModule();
             return;
         }
 
         this.updateModuleList();
+        this.projectLoaded();
+    },
+
+    initServer: function() {
+        if (this.io) {
+            console.log('Server already started');
+            this.io.emit('reloadGame');
+            return;
+        }
+        
+        var app = this.express();
+        var http = require('http').Server(app);
+        var io = require('socket.io')(http);
+
+        var script = this.fs.readFileSync('js/reload.html', { encoding: 'utf-8' });
+
+        app.use(require('connect-inject')({ snippet: script }));
+
+        app.use('/', function(req, res, next) {
+            editor.express.static(editor.currentProject)(req, res, next);
+        });
+
+        io.on('connection', function(socket){
+            console.log('Client connected');
+            socket.on('disconnect', function(){
+                console.log('Client disconnected');
+            });
+        });
+
+        http.listen(this.settings.port);
+
+        console.log('Listening on port ' + this.settings.port);
+
+        this.io = io;
+    },
+
+    projectLoaded: function() {
+        this.initServer();
 
         var lastClass = this.getStorage('lastClass');
         var lastModule = this.getStorage('lastModule');
@@ -683,12 +743,12 @@ var editor = {
 
             if (this.modules[module].changed) needToSave = true;
 
-            // if (this.currentModule === module && !this.currentClass) {
-            //     if (this.saveNewClass()) {
-            //         needToSave = true;
-            //         needUpdate = true;
-            //     }
-            // }
+            if (this.currentModule === module && !this.currentClass) {
+                if (this.saveNewClass()) {
+                    needToSave = true;
+                    needUpdate = true;
+                }
+            }
 
             for (var className in this.modules[module].classes) {
                 var classObj = this.modules[module].classes[className];
@@ -718,8 +778,6 @@ var editor = {
                     data += '.require(\'' + requires + '\')\n';
                 }
                 data += '.body(function() {\n\n';
-
-                data += this.modules[module].session.getValue() + '\n';
 
                 for (var className in this.modules[module].classes) {
                     var funcName = 'createClass';
@@ -759,6 +817,11 @@ var editor = {
         this.modules[module].changed = false;
         $(this.modules[module].div).removeClass('changed');
         $(this.modules[module].div).html(this.modules[module].name);
+
+        if (this.io) {
+            console.log('Emit reloadModule');
+            this.io.emit('reloadModule', module);
+        }
     },
 
     createProject: function() {

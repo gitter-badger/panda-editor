@@ -14,5 +14,6 @@
 - Build your project with single mouse click
 - Multiple themes to make the editor fit your eye
 - High performance code editor based on [Ace](http://ace.c9.io/)
+- No need for separate web server
 - Easily add assets to your game with drag & drop _(coming)_
 - See changes instantly in your game _(coming)_
