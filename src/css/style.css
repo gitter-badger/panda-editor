@@ -28,12 +28,22 @@ body {
 .tab {
 	height: 100%;
 	float: left;
+	overflow: hidden;
 	position: relative;
-	overflow: auto;
+}
+
+.tab .header {
+	color: #fc0;
+	padding: 5px;
 }
 
 .tab .content {
 	height: 100%;
+	width: 400px;
+}
+
+.tab .content div, .tab .content label {
+	padding: 5px;
 }
 
 .tab .resize {
@@ -49,13 +59,21 @@ body {
 	cursor: col-resize;
 }
 
-#modules {
-	width: 240px;
-	line-height: 24px;
+#settings {
+	/*display: none;*/
+	width: 150px;
 }
 
-#modules .list {
-	margin-right: 2px;
+#settings input {
+	display: none;
+}
+
+#settings label {
+	display: block;
+}
+
+#modules {
+	width: 200px;
 }
 
 #modules .module {
@@ -78,7 +96,7 @@ body {
 }
 
 #modules button:hover {
-	background: #333;
+	background: #999;
 }
 
 #modules button:active {
@@ -94,21 +112,35 @@ body {
 	padding-left: 25px;
 }
 
-#modules .list div:hover {
+#devices {
+	width: 200px;
+}
+
+#modules .content div:hover,
+#devices .device:hover,
+#settings label:hover {
 	cursor: pointer;
 	background: rgba(255, 255, 255, 0.10);
+}
+
+#settings label {
+	color: green;
+}
+
+#settings label.disabled {
+	color: red;
 }
 
 #modules .class.changed {
 	color: #f4bf75;
 }
 
-#modules .list div.current {
+#modules div.current {
 	color: #ac4142;
 	background: rgba(255, 255, 255, 0.10);
 }
 
-#modules .list button {
+#modules button {
 	float: right;
 }
 
@@ -117,10 +149,13 @@ body {
 }
 
 #editor {
-	width: 100%;
-	position: absolute;
-	margin-left: 0px;
 	font-family: Menlo;
+	padding: 0;
+	border-style: none;
+	height: 100%;
+	float: left;
+	overflow: hidden;
+	position: relative;
 }
 
 #loader {

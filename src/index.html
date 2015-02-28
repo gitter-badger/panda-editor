@@ -14,14 +14,28 @@
 </head>
 <body>
     <img src="img/loader.png" id="loader">
-    <div id="modules" class="tab">
+
+    <div id="settings" class="tab">
+        <div class="header">Settings</div>
         <div class="content">
-            <div class="list"></div>
-            <button href="newModule">+</button>
+            <input type="checkbox" id="conf_debug" checked><label for="conf_debug">conf_debug</label>
+            <input type="checkbox" id="conf_test" checked><label for="conf_test">conf_test</label>
         </div>
         <div class="resize"></div>
     </div>
 
-    <div id="editor" class="tab"></div>
+    <div id="devices" class="tab">
+        <div class="header">Devices</div>
+        <div class="content"></div>
+        <div class="resize"></div>
+    </div>
+
+    <div id="modules" class="tab">
+        <div class="header">Modules</div>
+        <div class="content"></div>
+        <div class="resize"></div>
+    </div>
+
+    <div id="editor"></div>
 </body>
 </html>

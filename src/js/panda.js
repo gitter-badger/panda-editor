@@ -1,5 +1,6 @@
 // TODO
 // Remove module
+// Class Extending!
 
 var editor = {
     info: require('./package.json'),
@@ -14,11 +15,14 @@ var editor = {
         port: 3000
     },
 
+    devices: [],
+
     init: function() {
         // Tab resize
         $('.tab .resize').mousedown(this.resizeDown.bind(this));
         $(window).mousemove(this.resizeMove.bind(this));
         $(window).mouseup(this.resizeUp.bind(this));
+        $('#settings input').on('change', this.updateSettings.bind(this));
 
         window.addEventListener('resize', this.onResize.bind(this));
         window.ondragover = this.dragover.bind(this);
@@ -38,8 +42,22 @@ var editor = {
         this.window.show();
     },
 
+    updateSettings: function(event) {
+        var id = $(event.target).attr('id');
+        var value = !!$(event.target).is(':checked');
+        var label = $('label[for="' + id + '"]');
+
+        if (!value) $(label).addClass('disabled');
+        else $(label).removeClass('disabled');
+        this.settings[id] = value;
+
+        if (id.indexOf('device_') === 0) {
+            this.io.emit('updateSettings', id, value);
+        }
+    },
+
     initEditor: function() {
-        console.log('Loading editor...');
+        console.log('Initializing editor');
 
         this.currentFontSize = this.settings.fontSize;
         this.changeFontSize(0);
@@ -58,12 +76,6 @@ var editor = {
             showPrintMargin: false,
             displayIndentGuides: true,
             showFoldWidgets: false
-        });
-        
-        this.editor.commands.addCommand({
-            name: 'toggleModules',
-            bindKey: { mac: 'Ctrl-Tab', win: 'Ctrl-Tab' },
-            exec: this.toggleModules.bind(this)
         });
         this.editor.commands.addCommand({
             name: 'saveChanges',
@@ -122,11 +134,11 @@ var editor = {
     reloadGame: function() {
         if (!this.io) return;
         console.log('Emit reloadGame');
-        this.io.emit('reloadGame');
+        this.io.emit('command', 'reloadGame');
     },
 
     initMenu: function() {
-        console.log('Loading menu...');
+        console.log('Initializing menu');
 
         var menubar = new this.gui.Menu({ type: 'menubar' });
         menubar.createMacBuiltin(this.info.description);
@@ -139,14 +151,37 @@ var editor = {
         project.append(new this.gui.MenuItem({ label: 'Create new project', click: this.createProject.bind(this) }));
         project.append(new this.gui.MenuItem({ label: 'Update engine', click: this.updateEngine.bind(this) }));
         
+        // Show menu
+        var show = new this.gui.Menu();
+        $('.tab').each(this.addShowMenuItem.bind(this, show));
+
         // Help menu
         var help = new this.gui.Menu();
         help.append(new this.gui.MenuItem({ label: 'About' }));
         
         menubar.insert(new this.gui.MenuItem({ label: 'Project', submenu: project }), 1);
+        menubar.append(new this.gui.MenuItem({ label: 'Show', submenu: show }));
         menubar.append(new this.gui.MenuItem({ label: 'Help', submenu: help }));
 
         this.window.menu = menubar;
+    },
+
+    addShowMenuItem: function(menu, index, tab) {
+        var id = $(tab).attr('id');
+
+        var name = id.charAt(0).toUpperCase() + id.substr(1);
+        menu.append(new this.gui.MenuItem({ label: name, click: this.toggleTab.bind(this, id) }));
+
+        this.editor.commands.addCommand({
+            name: 'toggleTab' + name,
+            bindKey: { mac: 'Cmd-' + (index + 1), win: 'Alt-' + (index + 1) },
+            exec: this.toggleTab.bind(this, id)
+        });
+    },
+
+    toggleTab: function(tab) {
+        $('#' + tab).toggle();
+        this.onResize();
     },
 
     viewProject: function() {
@@ -257,6 +292,7 @@ var editor = {
     },
 
     resizeDown: function(event) {
+        console.log('down');
         this.resizing = true;
         this.resizeX = event.pageX;
         this.resizeTarget = $(event.currentTarget).parent('.tab');
@@ -267,8 +303,8 @@ var editor = {
     resizeMove: function(event) {
         if (this.resizing) {
             var newWidth = this.resizeWidth + (event.pageX - this.resizeX);
-            if (newWidth < 200) newWidth = 200;
-            if (newWidth > 400) newWidth = 400;
+            if (newWidth < 100) newWidth = 100;
+            if (newWidth > 300) newWidth = 300;
             this.resizeTarget.width(newWidth);
 
             this.onResize();
@@ -283,22 +319,19 @@ var editor = {
 
     onResize: function() {
         var editorWidth = window.innerWidth;
-        var modulesWidth = 0;
+        var tabsWidth = 0;
         
-        if ($('#modules').is(':visible')) {
-            modulesWidth = $('#modules').width();
-            editorWidth -= modulesWidth;
-        }
+        $('.tab').each(function() {
+            if ($(this).is('#editor')) return;
+            if (!$(this).is(':visible')) return;
+            tabsWidth += $(this).outerWidth(true);
+        });
+
+        editorWidth -= (tabsWidth + 1);
 
         $('#editor').width(editorWidth);
-        $('#editor').css('margin-left', modulesWidth + 'px');
 
         this.editor.resize();
-    },
-
-    toggleModules: function() {
-        $('#modules').toggle();
-        this.onResize();
     },
 
     ksort: function(obj, compare) {
@@ -326,13 +359,13 @@ var editor = {
             this.modules[module].classes = this.ksort(this.modules[module].classes);
         }
 
-        $('#modules .content .list').html('');
+        $('#modules .content').html('');
 
         for (var name in this.modules) {
             var div = document.createElement('div');
             $(div).addClass('module');
             $(div).html(name.substr(5));
-            $(div).appendTo($('#modules .content .list'));
+            $(div).appendTo($('#modules .content'));
             $(div).click(this.editClass.bind(this, null, name));
 
             this.modules[name].div = div;
@@ -346,7 +379,7 @@ var editor = {
                 var div = document.createElement('div');
                 $(div).addClass('class');
                 $(div).html(className);
-                $(div).appendTo($('#modules .content .list'));
+                $(div).appendTo($('#modules .content'));
                 $(div).click(this.editClass.bind(this, className, name));
 
                 this.modules[name].classes[className].div = div;
@@ -364,8 +397,6 @@ var editor = {
         if (this.currentFontSize > 23) this.currentFontSize = 23;
         
         $('#editor').css('font-size', this.currentFontSize + 'px');
-        $('#modules').css('font-size', this.currentFontSize + 'px');
-        $('#modules').css('line-height', (this.currentFontSize + 8) + 'px');
     },
 
     newModule: function() {
@@ -437,7 +468,7 @@ var editor = {
         if (!sure) return;
 
         this.showLoader();
-        console.log('Building project...');
+        console.log('Building project');
 
         var worker = this.fork('js/worker.js', { execPath: './node' });
         worker.on('message', this.buildComplete.bind(this));
@@ -464,7 +495,7 @@ var editor = {
 
         console.log('Loading project ' + dir);
 
-        console.log('Loading config...');
+        console.log('Loading config');
 
         try {
             require(dir + '/src/game/config.js');   
@@ -485,7 +516,7 @@ var editor = {
 
         this.window.title = this.info.description + ' - ' + this.config.name + ' ' + this.config.version;
 
-        console.log('Loading modules...');
+        console.log('Loading modules');
         this.loadModuleData();
     },
 
@@ -502,7 +533,7 @@ var editor = {
             return;
         }
 
-        console.log('Loading classes...');
+        console.log('Loading classes');
         this.getClassesFromModule();
     },
 
@@ -600,7 +631,8 @@ var editor = {
     initServer: function() {
         if (this.io) {
             console.log('Server already started');
-            this.io.emit('reloadGame');
+            this.staticServe = this.express.static(this.currentProject);
+            this.io.emit('command', 'reloadGame');
             return;
         }
         
@@ -610,16 +642,36 @@ var editor = {
 
         var script = this.fs.readFileSync('js/reload.html', { encoding: 'utf-8' });
 
+        app.post('/register', function(req, res) {
+            res.sendStatus(200);
+        });
+
+        this.snippetScript = script;
+
         app.use(require('connect-inject')({ snippet: script }));
 
+        this.staticServe = this.express.static(this.currentProject);
+
         app.use('/', function(req, res, next) {
-            editor.express.static(editor.currentProject)(req, res, next);
+            editor.staticServe(req, res, next);
         });
 
         io.on('connection', function(socket){
             console.log('Client connected');
-            socket.on('disconnect', function(){
+            socket.on('disconnect', function() {
                 console.log('Client disconnected');
+                for (var i = editor.devices.length - 1; i >= 0; i--) {
+                    var device = editor.devices[i];
+                    if (this === device.socket) {
+                        editor.devices.splice(i, 1);
+                        if (device.div) editor.updateDeviceList();
+                        break;
+                    }
+                }
+            });
+            socket.on('register', function(data) {
+                data.socket = this;
+                editor.registerDevice(data);
             });
         });
 
@@ -628,6 +680,32 @@ var editor = {
         console.log('Listening on port ' + this.settings.port);
 
         this.io = io;
+    },
+
+    registerDevice: function(data) {
+        this.devices.push(data);
+        this.updateDeviceList();
+        console.log('Registered device ' + data.platform + ' ' + data.model);
+    },
+
+    updateDeviceList: function() {
+        $('#devices .content').html('');
+        for (var i = 0; i < this.devices.length; i++) {
+            var device = this.devices[i];
+            var div = document.createElement('div');
+            $(div).addClass('device');
+            $(div).html(device.platform + ' ' + device.model);
+            $(div).appendTo($('#devices .content'));
+            $(div).click(this.reloadDevice.bind(this, device));
+            device.div = div;
+        }
+        this.onResize();
+    },
+
+    reloadDevice: function(device) {
+        $(device.div).remove();
+        device.div = null;
+        device.socket.emit('command', 'reloadGame');
     },
 
     projectLoaded: function() {
@@ -820,7 +898,7 @@ var editor = {
 
         if (this.io) {
             console.log('Emit reloadModule');
-            this.io.emit('reloadModule', module);
+            this.io.emit('command', 'reloadModule', module);
         }
     },
 
@@ -839,7 +917,7 @@ var editor = {
 
         this.showLoader();
 
-        console.log('Creating new project...');
+        console.log('Creating new project');
 
         var dir = '/Users/eemelikelokorpi/Sites/temp/';
 

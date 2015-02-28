@@ -1,26 +1,68 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
-	var socket = io();
+var app = {
+	connected: false,
 
-	var reloadGame = function() {
+	init: function() {
+		var params = window.location.href.split('?')[1].split('&');
+		for (var i = 0; i < params.length; i++) {
+			var info = params[i].split('=');
+			if (info.length < 2) continue;
+			this[info[0]] = decodeURIComponent(info[1]);
+		}
+
+		this.config = JSON.parse(localStorage.getItem('config')) || {};
+		
+		// Force debug mode
+		game.config.debug = game.config.debug || {};
+		game.config.debug.enabled = true;
+
+		this.socket = io();
+		this.socket.on('connect', this.onConnect.bind(this));
+		this.socket.on('disconnect', this.onDisconnect.bind(this));
+		this.socket.on('command', this.onCommand.bind(this));
+	},
+
+	updateSettings: function(id, value) {
+		if (id === 'device_debug') {
+
+		}
+	},
+
+	onCommand: function(command, param) {
+		if (this[command]) this[command](param);
+	},
+
+	onConnect: function() {
+		this.connected = true;
+		this.socket.emit('register', {
+			platform: this.platform,
+			model: this.model
+		});
+	},
+
+	onDisconnect: function() {
+		this.connected = false;
+	},
+
+	reloadGame: function() {
 		window.location.reload();
-		// window.location = window.location.href.split('?')[0] + '?' + Date.now();
-	};
+		// window.location = window.location.href.split('?')[0] + '?platform=' + this.platform + '&model=' + this.model + '&' + Date.now();
+	},
 
-	var reloadScene = function(scene) {
+	reloadScene: function(scene) {
 		game.system.setScene(scene || game.system.sceneName);
-	};
+	},
 
-	var reloadModule = function(module) {
+	reloadModule: function(module) {
 		game.config.autoStart = false;
 		game.ready = function() {
-			reloadScene();
+			app.reloadScene();
 		};
 
 		// Delete module classes
 		for (var i = 0; i < game.modules[module].classes.length; i++) {
 			var className = game.modules[module].classes[i];
-			console.log('Deleting class ' + className);
 			delete game[className];
 		}
 
@@ -35,17 +77,26 @@
 		script.onerror = function() {
 		};
 		document.getElementsByTagName('head')[0].appendChild(script);
-	};
+	}
+};
 
-	socket.on('reloadScene', function(scene) {
-		reloadScene(scene);
-	});
+game.module('engine.editor')
+.require('engine.debug')
+.body(function() {
+	game.Debug.inject({
+		init: function() {
+			this._super();
+			this.debugDiv.addEventListener('touchstart', function() {
+				history.back();
+			});
+		},
 
-	socket.on('reloadModule', function(module) {
-		reloadModule(module);
+		setText: function(text) {
+			text += ' CONNECTED: ' + app.connected;
+			this._super(text);
+		}
 	});
+});
 
-	socket.on('reloadGame', function() {
-		reloadGame();
-	});
+app.init();
 </script>
