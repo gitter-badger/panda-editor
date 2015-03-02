@@ -12,21 +12,11 @@ var app = {
 		}
 
 		this.config = JSON.parse(localStorage.getItem('config')) || {};
-		
-		// Force debug mode
-		game.config.debug = game.config.debug || {};
-		game.config.debug.enabled = true;
 
 		this.socket = io();
 		this.socket.on('connect', this.onConnect.bind(this));
 		this.socket.on('disconnect', this.onDisconnect.bind(this));
 		this.socket.on('command', this.onCommand.bind(this));
-	},
-
-	updateSettings: function(id, value) {
-		if (id === 'device_debug') {
-
-		}
 	},
 
 	onCommand: function(command, param) {
@@ -47,7 +37,6 @@ var app = {
 
 	reloadGame: function() {
 		window.location.reload();
-		// window.location = window.location.href.split('?')[0] + '?platform=' + this.platform + '&model=' + this.model + '&' + Date.now();
 	},
 
 	reloadScene: function(scene) {

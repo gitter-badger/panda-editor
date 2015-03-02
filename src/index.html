@@ -20,6 +20,7 @@
         <div class="item" data-target="assets"><img src="img/icons/image.png"></div>
         <div class="item" data-target="devices"><img src="img/icons/tablet.png"></div>
         <div class="item" data-target="project"><img src="img/icons/gear.png"></div>
+        <div class="item" data-target="deploy"><img src="img/icons/rocket.png"></div>
         <div class="item" data-target="settings"><img src="img/icons/tools.png"></div>
     </div>
 
@@ -34,9 +35,23 @@
     <div id="project" class="tab">
         <div class="header">Project</div>
         <div class="content">
+            <label for="projectName">Name:</label><input type="text" id="projectName">
+            <label for="projectWidth">Width:</label><input type="text" id="projectWidth">
+            <label for="projectHeight">Height:</label><input type="text" id="projectHeight">
+            <label for="projectCenter">Center:</label><input type="checkbox" id="projectCenter">
+            <label for="projectScale">Scale:</label><input type="checkbox" id="projectScale">
+            <label for="projectResize">Resize:</label><input type="checkbox" id="projectResize">
+            <label for="projectDebug">Debug:</label><input type="checkbox" id="projectDebug">
+            <button href="saveConfig">Save changes</button>
+        </div>
+    </div>
+
+    <div id="deploy" class="tab">
+        <div class="header">Deploy</div>
+        <div class="content">
             <div id="engineVersion"></div>
             <button href="buildProject">Build project</button>
-            <button href="buildProject">Update engine</button>
+            <button href="updateEngine">Update engine</button>
         </div>
     </div>
 

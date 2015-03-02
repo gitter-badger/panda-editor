@@ -42,6 +42,9 @@ body {
 	height: 100%;
 	float: left;
 	border-right: 2px solid rgba(0, 0, 0, 0.2);
+
+	/*background: #37373a;*/
+	border-right: 1px solid #000;
 }
 
 #menu .item {
@@ -49,6 +52,10 @@ body {
 	width: 50px;
 	height: 50px;
 	border-bottom: 4px solid rgba(0, 0, 0, 0.2);
+
+	/*background: #535353;*/
+	background: rgba(255, 255, 255, 0.3);
+	border-bottom: 2px solid rgba(0, 0, 0, 0.4);
 }
 
 #menu .item img {
@@ -58,12 +65,12 @@ body {
 
 #menu .item:hover {
 	background: rgba(255, 255, 255, 0.2);
-	border-bottom: 4px solid rgba(0, 0, 0, 0.4);
 	cursor: pointer;
 }
 
 #menu .item.current {
-	background: rgba(0, 0, 0, 0.1);
+	/*border-top: 1px solid rgba(255, 255, 255, 0.1);*/
+	background: rgba(255, 255, 255, 0.1);
 	cursor: default;
 }
 
@@ -74,6 +81,7 @@ body {
 	position: relative;
 	width: 230px;
 	display: none;
+	border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tab .header {
@@ -126,14 +134,6 @@ button:active {
 	border-bottom: 2px solid rgba(0, 0, 0, 0.2);
 }
 
-#settings input {
-	margin-bottom: 10px;
-}
-
-#settings label {
-	margin-bottom: 4px;
-}
-
 #assets .drop {
 	color: rgba(255, 255, 255, 0.2);
 	text-align: center;
@@ -142,15 +142,26 @@ button:active {
 	padding: 20px 10px;
 }
 
-#settings input[type=text] {
+input[type=text] {
+	margin-bottom: 10px;
 	background: rgba(255, 255, 255, 0.1);
 	border-style: none;
 	padding: 5px;
 	color: #fff;
+	width: 200px;
 }
 
-#settings label {
+input[type=checkbox] {
+	float: left;
 	display: block;
+	margin-bottom: 10px;
+}
+
+label {
+	clear: both;
+	float: left;
+	display: block;
+	margin-bottom: 4px;
 }
 
 #modules .module {
@@ -185,8 +196,17 @@ button:active {
 	margin-left: 5px;
 }
 
+#modules .module {
+	padding: 5px;
+}
+
 #modules .class {
+	padding: 5px;
 	padding-left: 25px;
+}
+
+#modules .content div button {
+	display: none;
 }
 
 #modules .content div:hover,
@@ -196,13 +216,17 @@ button:active {
 	color: #fc0;
 }
 
+#devices .device {
+	padding: 5px;
+}
+
 #modules .class.changed {
 	color: #f4bf75;
 }
 
 #modules div.current {
 	color: #ac4142;
-	background: rgba(255, 255, 255, 0.10);
+	background: rgba(255, 255, 255, 0.1);
 }
 
 #modules button {

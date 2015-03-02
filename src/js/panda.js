@@ -12,19 +12,20 @@ var editor = {
 
     // List of connected devices
     devices: [],
-    // List of visible tabs
-    visibleTabs: [],
     // List of assets in project
     assets: {},
     assetTypes: [
-        'image/png'
+        'image/png',
+        'image/jpeg',
+        'application/json',
+        'audio/x-m4a',
+        'audio/ogg'
     ],
 
     // Default settings
     settings: {
         fontSize: 16,
         port: 3000,
-        uiColor: '#333b49',
         theme: 'sunburst'
     },
 
@@ -90,9 +91,6 @@ var editor = {
     applySettings: function() {
         if (this.editor) this.editor.setTheme('ace/theme/' + this.settings.theme);
         document.body.className = 'ace-' + this.settings.theme.replace(/\_/g, '-');
-
-        // $('#menu').css('background', this.settings.uiColor);
-        // $('.tab').css('background', this.settings.uiColor);
 
         this.currentFontSize = parseInt(this.settings.fontSize);
         this.changeFontSize(0);
@@ -206,27 +204,17 @@ var editor = {
         this.editor.commands.addCommand({
             name: 'toggleTabs',
             bindKey: { mac: 'Ctrl-Tab', win: 'Ctrl-Tab' },
-            exec: this.toggleTabs.bind(this)
+            exec: this.toggleCurrentTab.bind(this)
         });
 
         this.editor.focus();
     },
 
-    toggleTabs: function() {
-        var tabs = [];
-        $('.tab').each(function() {
-            if ($(this).is(':visible')) tabs.push($(this).attr('id'));
-        });
-        if (tabs.length === 0) {
-            for (var i = 0; i < this.settings.visibleTabs.length; i++) {
-                $('#' + this.settings.visibleTabs[i]).show();
-            }
-        }
-        else {
-            for (var i = 0; i < tabs.length; i++) {
-                $('#' + tabs[i]).hide();
-            }
-        }
+    toggleCurrentTab: function() {
+        var current = $('#menu .item.current').attr('data-target');
+        if (!current) return;
+
+        $('#' + current).toggle();
 
         this.onResize();
     },
@@ -393,6 +381,7 @@ var editor = {
         else {
             for (var i = 0; i < event.dataTransfer.files.length; i++) {
                 var file = event.dataTransfer.files[i];
+                console.log(file.type);
                 if (this.assetTypes.indexOf(file.type) !== -1) {
                     this.copyAsset(file);
                 }
@@ -401,7 +390,6 @@ var editor = {
     },
 
     copyAsset: function(file) {
-        console.log(file);
         this.copyFile(file.path, this.currentProject + '/media/' + file.name, this.addAsset.bind(this, file.name));
     },
 
@@ -431,7 +419,6 @@ var editor = {
 
     addAsset: function(filename, err) {
         if (err) return console.log('Error copying asset');
-        console.log(filename);
 
         $('#assets .drop').remove();
 
@@ -651,6 +638,7 @@ var editor = {
 
         console.log('Loading config');
 
+        delete global.require.cache[dir + '/src/game/config.js'];
         try {
             require(dir + '/src/game/config.js');   
         }
@@ -678,11 +666,39 @@ var editor = {
         this.modules['game.main'] = {};
         
         this.config = global.pandaConfig;
+        this.config.system = this.config.system || {};
+        this.config.debug = this.config.debug || {};
+
+        $('#projectName').val(this.config.name);
+        $('#projectWidth').val(this.config.system.width);
+        $('#projectHeight').val(this.config.system.height);
+        $('#projectCenter').prop('checked', this.config.system.center);
+        $('#projectScale').prop('checked', this.config.system.scale);
+        $('#projectResize').prop('checked', this.config.system.resize);
+        $('#projectDebug').prop('checked', this.config.debug.enabled);
 
         this.window.title = this.info.description + ' - ' + this.config.name + ' ' + this.config.version;
 
         console.log('Loading modules');
         this.loadModuleData();
+    },
+
+    saveConfig: function() {
+        this.config.name = $('#projectName').val();
+        this.config.system.width = parseInt($('#projectWidth').val());
+        this.config.system.height = parseInt($('#projectHeight').val());
+        this.config.system.center = $('#projectCenter').is(':checked');
+        this.config.system.scale = $('#projectScale').is(':checked');
+        this.config.system.resize = $('#projectResize').is(':checked');
+        this.config.debug.enabled = $('#projectDebug').is(':checked');
+
+        this.fs.writeFile(this.currentProject + '/src/game/config.js', 'pandaConfig = ' + JSON.stringify(this.config, null, 4) + ';', {
+            encoding: 'utf-8'
+        }, function(err) {
+            if (err) console.log('Error writing config');
+        });
+
+        this.io.emit('command', 'reloadGame');
     },
 
     loadModuleData: function() {
@@ -790,6 +806,19 @@ var editor = {
         }
 
         this.updateModuleList();
+        
+        this.fs.readdir(this.currentProject + '/media', this.addMediaFolder.bind(this));
+    },
+
+    addMediaFolder: function(err, files) {
+        if (err) return console.log('Error reading media folder');
+
+        $('#assets .content').html('');
+
+        for (var i = 0; i < files.length; i++) {
+            this.addAsset(files[i]);
+        }
+
         this.projectLoaded();
     },
 
@@ -848,6 +877,10 @@ var editor = {
     },
 
     registerDevice: function(data) {
+        if (!data.platform) {
+            data.platform = 'Desktop';
+            data.model = 'browser';
+        }
         this.devices.push(data);
         this.updateDeviceList();
         console.log('Registered device ' + data.platform + ' ' + data.model);
