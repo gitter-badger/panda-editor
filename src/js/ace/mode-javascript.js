@@ -60,8 +60,7 @@ var JavaScriptHighlightRules = function(options) {
         "variable.language":
             "Array|Boolean|Date|Function|Iterator|Number|Object|RegExp|String|Proxy|"  + // Constructors
             "Namespace|QName|XML|XMLList|"                                             + // E4X
-            "ArrayBuffer|Float32Array|Float64Array|Int16Array|Int32Array|Int8Array|"   +
-            "Uint16Array|Uint32Array|Uint8Array|Uint8ClampedArray|"                    +
+            "ArrayBuffer|"   +
             "Error|EvalError|InternalError|RangeError|ReferenceError|StopIteration|"   + // Errors
             "SyntaxError|TypeError|URIError|"                                          +
             "decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|eval|isFinite|" + // Non-constructor functions

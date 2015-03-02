@@ -10,20 +10,34 @@ var editor = {
     esprima: require('esprima'),
     express: require('express'),
 
+    // List of connected devices
+    devices: [],
+    // List of visible tabs
+    visibleTabs: [],
+    // List of assets in project
+    assets: {},
+    assetTypes: [
+        'image/png'
+    ],
+
+    // Default settings
     settings: {
         fontSize: 16,
-        port: 3000
+        port: 3000,
+        uiColor: '#333b49',
+        theme: 'sunburst'
     },
 
-    devices: [],
-
     init: function() {
-        // Tab resize
+        this.initSettings();
+        this.applySettings();
+
         $('.tab .resize').mousedown(this.resizeDown.bind(this));
         $(window).mousemove(this.resizeMove.bind(this));
         $(window).mouseup(this.resizeUp.bind(this));
         $('#settings input').on('change', this.updateSettings.bind(this));
-
+        $('#menu .item').click(this.menuClick.bind(this));
+        $('button').click(this.buttonClick.bind(this));
         window.addEventListener('resize', this.onResize.bind(this));
         window.ondragover = this.dragover.bind(this);
         window.ondragleave = this.dragleave.bind(this);
@@ -40,6 +54,71 @@ var editor = {
         this.loadLastProject();
 
         this.window.show();
+    },
+
+    buttonClick: function(event) {
+        var target = $(event.currentTarget).attr('href');
+        if (typeof this[target] === 'function') this[target]();
+    },
+
+    resetSettings: function() {
+        localStorage.setItem('settings', null);
+    },
+
+    initSettings: function() {
+        // Load saved settings
+        var savedSettings = JSON.parse(localStorage.getItem('settings'));
+        for (var name in savedSettings) {
+            this.settings[name] = savedSettings[name];
+        }
+
+        for (var name in this.settings) {
+            var label = document.createElement('label');
+            $(label).html(name);
+            label.for = name;
+
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.id = name;
+            input.value = this.settings[name];
+
+            $(label).appendTo($('#settings .content .list'));
+            $(input).appendTo($('#settings .content .list'));
+        }
+    },
+
+    applySettings: function() {
+        if (this.editor) this.editor.setTheme('ace/theme/' + this.settings.theme);
+        document.body.className = 'ace-' + this.settings.theme.replace(/\_/g, '-');
+
+        // $('#menu').css('background', this.settings.uiColor);
+        // $('.tab').css('background', this.settings.uiColor);
+
+        this.currentFontSize = parseInt(this.settings.fontSize);
+        this.changeFontSize(0);
+    },
+
+    saveSettings: function() {
+        console.log('Saving settings');
+        var settings = {};
+        $('#settings input').each(function(index, elem) {
+            var id = $(elem).attr('id');
+            var value = $(elem).val();
+            settings[id] = value;
+        });
+        this.settings = settings;
+        localStorage.setItem('settings', JSON.stringify(this.settings));
+
+        this.applySettings();
+    },
+
+    menuClick: function(event) {
+        var target = $(event.currentTarget).attr('data-target');
+        
+        this.showTab(target);
+
+        $('.item.current').removeClass('current');
+        $(event.currentTarget).addClass('current');
     },
 
     updateSettings: function(event) {
@@ -59,13 +138,10 @@ var editor = {
     initEditor: function() {
         console.log('Initializing editor');
 
-        this.currentFontSize = this.settings.fontSize;
-        this.changeFontSize(0);
-
         require('ace/config').setDefaultValue('session', 'useWorker', false);
 
         this.editor = ace.edit('editor');
-        this.editor.setTheme('ace/theme/sunburst');
+        this.editor.setTheme('ace/theme/' + this.settings.theme);
         this.editor.getSession().setMode('ace/mode/javascript');
         this.editor.$blockScrolling = Infinity;
         
@@ -127,8 +203,32 @@ var editor = {
             bindKey: { mac: 'Cmd-R', win: 'Ctrl-R' },
             exec: this.reloadGame.bind(this)
         });
+        this.editor.commands.addCommand({
+            name: 'toggleTabs',
+            bindKey: { mac: 'Ctrl-Tab', win: 'Ctrl-Tab' },
+            exec: this.toggleTabs.bind(this)
+        });
 
         this.editor.focus();
+    },
+
+    toggleTabs: function() {
+        var tabs = [];
+        $('.tab').each(function() {
+            if ($(this).is(':visible')) tabs.push($(this).attr('id'));
+        });
+        if (tabs.length === 0) {
+            for (var i = 0; i < this.settings.visibleTabs.length; i++) {
+                $('#' + this.settings.visibleTabs[i]).show();
+            }
+        }
+        else {
+            for (var i = 0; i < tabs.length; i++) {
+                $('#' + tabs[i]).hide();
+            }
+        }
+
+        this.onResize();
     },
 
     reloadGame: function() {
@@ -152,15 +252,15 @@ var editor = {
         project.append(new this.gui.MenuItem({ label: 'Update engine', click: this.updateEngine.bind(this) }));
         
         // Show menu
-        var show = new this.gui.Menu();
-        $('.tab').each(this.addShowMenuItem.bind(this, show));
+        // var show = new this.gui.Menu();
+        // $('.tab').each(this.addShowMenuItem.bind(this, show));
 
         // Help menu
         var help = new this.gui.Menu();
         help.append(new this.gui.MenuItem({ label: 'About' }));
         
         menubar.insert(new this.gui.MenuItem({ label: 'Project', submenu: project }), 1);
-        menubar.append(new this.gui.MenuItem({ label: 'Show', submenu: show }));
+        // menubar.append(new this.gui.MenuItem({ label: 'Show', submenu: show }));
         menubar.append(new this.gui.MenuItem({ label: 'Help', submenu: help }));
 
         this.window.menu = menubar;
@@ -179,8 +279,9 @@ var editor = {
         });
     },
 
-    toggleTab: function(tab) {
-        $('#' + tab).toggle();
+    showTab: function(tab) {
+        $('.tab').hide();
+        $('#' + tab).show();
         this.onResize();
     },
 
@@ -289,10 +390,60 @@ var editor = {
 
             this.loadProject(path); 
         }
+        else {
+            for (var i = 0; i < event.dataTransfer.files.length; i++) {
+                var file = event.dataTransfer.files[i];
+                if (this.assetTypes.indexOf(file.type) !== -1) {
+                    this.copyAsset(file);
+                }
+            }
+        }
+    },
+
+    copyAsset: function(file) {
+        console.log(file);
+        this.copyFile(file.path, this.currentProject + '/media/' + file.name, this.addAsset.bind(this, file.name));
+    },
+
+    copyFile: function(source, target, cb) {
+        var cbCalled = false;
+
+        var rd = this.fs.createReadStream(source);
+        rd.on("error", function(err) {
+            done(err);
+        });
+        var wr = this.fs.createWriteStream(target);
+        wr.on("error", function(err) {
+            done(err);
+        });
+        wr.on("close", function(ex) {
+            done();
+        });
+        rd.pipe(wr);
+
+        function done(err) {
+            if (!cbCalled) {
+                cb(err);
+                cbCalled = true;
+            }
+        }
+    },
+
+    addAsset: function(filename, err) {
+        if (err) return console.log('Error copying asset');
+        console.log(filename);
+
+        $('#assets .drop').remove();
+
+        this.assets[filename] = filename;
+
+        var div = document.createElement('div');
+        $(div).html(filename);
+
+        $(div).appendTo($('#assets .content'));
     },
 
     resizeDown: function(event) {
-        console.log('down');
         this.resizing = true;
         this.resizeX = event.pageX;
         this.resizeTarget = $(event.currentTarget).parent('.tab');
@@ -312,9 +463,11 @@ var editor = {
     },
 
     resizeUp: function(event) {
-        this.resizing = false;
-        $(document.body).css('cursor', 'default');
-        this.editor.focus();
+        if (this.resizing) {
+            this.resizing = false;
+            $(document.body).css('cursor', 'default');
+            this.editor.focus();
+        }
     },
 
     onResize: function() {
@@ -328,6 +481,7 @@ var editor = {
         });
 
         editorWidth -= (tabsWidth + 1);
+        editorWidth -= $('#menu').outerWidth(true);
 
         $('#editor').width(editorWidth);
 
@@ -503,6 +657,17 @@ var editor = {
         catch(e) {
             return console.error('Config not found');
         }
+
+        console.log('Loading engine');
+
+        try {
+            var game = require(dir + '/src/engine/core.js');
+        }
+        catch(e) {
+            return console.log('Engine not found');
+        }
+
+        $('#engineVersion').html('Panda Engine: ' + game.version);
 
         this.showLoader();
 

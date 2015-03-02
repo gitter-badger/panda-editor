@@ -10,30 +10,51 @@
 
     <script type="text/javascript" src="js/ace/ace.js"></script>
     <script type="text/javascript" src="js/ace/ext-language_tools.js"></script>
-    <link rel="stylesheet" type="text/css" href="js/ace/sunburst.css">
+    <link rel="stylesheet" type="text/css" href="js/ace/theme-sunburst.css">
 </head>
 <body>
     <img src="img/loader.png" id="loader">
 
+    <div id="menu" class="ace_gutter">
+        <div class="item" data-target="modules"><img src="img/icons/bolt.png"></div>
+        <div class="item" data-target="assets"><img src="img/icons/image.png"></div>
+        <div class="item" data-target="devices"><img src="img/icons/tablet.png"></div>
+        <div class="item" data-target="project"><img src="img/icons/gear.png"></div>
+        <div class="item" data-target="settings"><img src="img/icons/tools.png"></div>
+    </div>
+
     <div id="settings" class="tab">
         <div class="header">Settings</div>
         <div class="content">
-            <input type="checkbox" id="conf_debug" checked><label for="conf_debug">conf_debug</label>
-            <input type="checkbox" id="conf_test" checked><label for="conf_test">conf_test</label>
+            <div class="list"></div>
+            <button href="saveSettings">Save changes</button>
         </div>
-        <div class="resize"></div>
+    </div>
+
+    <div id="project" class="tab">
+        <div class="header">Project</div>
+        <div class="content">
+            <div id="engineVersion"></div>
+            <button href="buildProject">Build project</button>
+            <button href="buildProject">Update engine</button>
+        </div>
     </div>
 
     <div id="devices" class="tab">
         <div class="header">Devices</div>
         <div class="content"></div>
-        <div class="resize"></div>
+    </div>
+
+    <div id="assets" class="tab">
+        <div class="header">Assets</div>
+        <div class="content">
+            <div class="drop">Drop assets here</div>
+        </div>
     </div>
 
     <div id="modules" class="tab">
         <div class="header">Modules</div>
         <div class="content"></div>
-        <div class="resize"></div>
     </div>
 
     <div id="editor"></div>

@@ -3,6 +3,16 @@
     src: url(../font/Menlo-Regular.ttf);
 }
 
+@font-face {
+    font-family: OpenSans;
+    src: url(../font/OpenSans-Regular.ttf);
+}
+
+@font-face {
+    font-family: Asap;
+    src: url(../font/Asap-Regular.ttf);
+}
+
 html, body {
 	height: 100%;
 }
@@ -13,7 +23,8 @@ html, body {
 
 body {
 	margin: 0;
-	font-family: Menlo;
+	font-family: Asap;
+	font-size: 14px;
 	color: #fff;
 	background: #000;
 	-webkit-touch-callout: none;
@@ -25,31 +36,62 @@ body {
     overflow: hidden;
 }
 
+#menu {
+	position: relative;
+	width: 50px;
+	height: 100%;
+	float: left;
+	border-right: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+#menu .item {
+	background: rgba(255, 255, 255, 0.1);
+	width: 50px;
+	height: 50px;
+	border-bottom: 4px solid rgba(0, 0, 0, 0.2);
+}
+
+#menu .item img {
+	margin-left: 9px;
+	margin-top: 9px;
+}
+
+#menu .item:hover {
+	background: rgba(255, 255, 255, 0.2);
+	border-bottom: 4px solid rgba(0, 0, 0, 0.4);
+	cursor: pointer;
+}
+
+#menu .item.current {
+	background: rgba(0, 0, 0, 0.1);
+	cursor: default;
+}
+
 .tab {
 	height: 100%;
 	float: left;
 	overflow: hidden;
 	position: relative;
+	width: 230px;
+	display: none;
 }
 
 .tab .header {
 	color: #fc0;
-	padding: 5px;
+	padding: 10px;
+	padding-bottom: 0px;
 }
 
 .tab .content {
+	position: relative;
 	height: 100%;
-	width: 400px;
-}
-
-.tab .content div, .tab .content label {
-	padding: 5px;
+	padding: 10px;
 }
 
 .tab .resize {
 	width: 2px;
 	height: 100%;
-	background: #333;
+	background: #333b49;
 	position: absolute;
 	top: 0px;
 	right: 0px;
@@ -59,21 +101,56 @@ body {
 	cursor: col-resize;
 }
 
-#settings {
-	/*display: none;*/
-	width: 150px;
+button {
+	font-size: 14px;
+	padding: 5px 10px;
+	display: block;
+	border-style: none;
+	background: rgba(255, 255, 255, 0.1);
+	font-family: Asap;
+	color: #fff;
+	border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+	margin-bottom: 5px;
+	margin-top: 5px;
+	width: 100%;
+}
+
+button:hover {
+	cursor: pointer;
+	background: rgba(255, 255, 255, 0.2);
+	border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+}
+
+button:active {
+	background: rgba(255, 255, 255, 0.1);
+	border-bottom: 2px solid rgba(0, 0, 0, 0.2);
 }
 
 #settings input {
-	display: none;
+	margin-bottom: 10px;
+}
+
+#settings label {
+	margin-bottom: 4px;
+}
+
+#assets .drop {
+	color: rgba(255, 255, 255, 0.2);
+	text-align: center;
+	border: 2px dashed rgba(255, 255, 255, 0.2);
+	border-radius: 5px;
+	padding: 20px 10px;
+}
+
+#settings input[type=text] {
+	background: rgba(255, 255, 255, 0.1);
+	border-style: none;
+	padding: 5px;
+	color: #fff;
 }
 
 #settings label {
 	display: block;
-}
-
-#modules {
-	width: 200px;
 }
 
 #modules .module {
@@ -112,23 +189,11 @@ body {
 	padding-left: 25px;
 }
 
-#devices {
-	width: 200px;
-}
-
 #modules .content div:hover,
-#devices .device:hover,
-#settings label:hover {
+#devices .device:hover {
 	cursor: pointer;
-	background: rgba(255, 255, 255, 0.10);
-}
-
-#settings label {
-	color: green;
-}
-
-#settings label.disabled {
-	color: red;
+	background: rgba(255, 255, 255, 0.1);
+	color: #fc0;
 }
 
 #modules .class.changed {
