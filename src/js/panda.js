@@ -54,6 +54,8 @@ var editor = {
 
         this.loadLastProject();
 
+        this.showTab('modules');
+
         this.window.show();
     },
 
@@ -114,9 +116,6 @@ var editor = {
         var target = $(event.currentTarget).attr('data-target');
         
         this.showTab(target);
-
-        $('.item.current').removeClass('current');
-        $(event.currentTarget).addClass('current');
     },
 
     updateSettings: function(event) {
@@ -268,6 +267,9 @@ var editor = {
     },
 
     showTab: function(tab) {
+        $('.item.current').removeClass('current');
+        $('.item[data-target="' + tab + '"]').addClass('current');
+
         $('.tab').hide();
         $('#' + tab).show();
         this.onResize();
@@ -427,7 +429,7 @@ var editor = {
         var div = document.createElement('div');
         $(div).html(filename);
 
-        $(div).appendTo($('#assets .content'));
+        $(div).appendTo($('#assets .content .list'));
     },
 
     resizeDown: function(event) {
@@ -500,13 +502,14 @@ var editor = {
             this.modules[module].classes = this.ksort(this.modules[module].classes);
         }
 
-        $('#modules .content').html('');
+        $('#modules .content .list').html('');
 
         for (var name in this.modules) {
+            if (name === 'game.assets') continue;
             var div = document.createElement('div');
             $(div).addClass('module');
             $(div).html(name.substr(5));
-            $(div).appendTo($('#modules .content'));
+            $(div).appendTo($('#modules .content .list'));
             $(div).click(this.editClass.bind(this, null, name));
 
             this.modules[name].div = div;
@@ -520,7 +523,7 @@ var editor = {
                 var div = document.createElement('div');
                 $(div).addClass('class');
                 $(div).html(className);
-                $(div).appendTo($('#modules .content'));
+                $(div).appendTo($('#modules .content .list'));
                 $(div).click(this.editClass.bind(this, className, name));
 
                 this.modules[name].classes[className].div = div;
@@ -615,6 +618,10 @@ var editor = {
         worker.on('message', this.buildComplete.bind(this));
         worker.on('exit', this.buildComplete.bind(this));
         worker.send(['build', this.currentProject]);
+    },
+
+    exitGame: function() {
+        this.io.emit('command', 'exitGame');
     },
 
     buildComplete: function(err) {
@@ -813,13 +820,46 @@ var editor = {
     addMediaFolder: function(err, files) {
         if (err) return console.log('Error reading media folder');
 
-        $('#assets .content').html('');
+        $('#assets .content .list').html('');
 
         for (var i = 0; i < files.length; i++) {
+            if (files[i].indexOf('.') === 0) continue;
             this.addAsset(files[i]);
         }
 
+        console.log('Loading plugins');
+        this.fs.readdir(this.currentProject + '/src/plugins', this.addPluginsFolder.bind(this));
+    },
+
+    addPluginsFolder: function(err, files) {
+        $('#plugins .content .list').html('');
+
+        if (err) console.log('No plugins found');
+        else {
+            for (var i = 0; i < files.length; i++) {
+                this.addPlugin(files[i]);
+            }
+        }
+
         this.projectLoaded();
+    },
+
+    addPlugin: function(file) {
+        var name = file.split('.')[0];
+
+        var div = document.createElement('div');
+        $(div).html(name);
+        $(div).click(this.removePlugin.bind(this, div, name));
+        $(div).appendTo($('#plugins .content .list'));
+    },
+
+    removePlugin: function(div, name) {
+        var sure = confirm('Remove plugin ' + name + '?');
+        if (!sure) return;
+
+        $(div).remove();
+
+        console.log('TODO');
     },
 
     initServer: function() {
@@ -887,13 +927,13 @@ var editor = {
     },
 
     updateDeviceList: function() {
-        $('#devices .content').html('');
+        $('#devices .content .list').html('');
         for (var i = 0; i < this.devices.length; i++) {
             var device = this.devices[i];
             var div = document.createElement('div');
             $(div).addClass('device');
             $(div).html(device.platform + ' ' + device.model);
-            $(div).appendTo($('#devices .content'));
+            $(div).appendTo($('#devices .content .list'));
             $(div).click(this.reloadDevice.bind(this, device));
             device.div = div;
         }

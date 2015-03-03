@@ -48,14 +48,11 @@ body {
 }
 
 #menu .item {
-	background: rgba(255, 255, 255, 0.1);
 	width: 50px;
 	height: 50px;
-	border-bottom: 4px solid rgba(0, 0, 0, 0.2);
-
-	/*background: #535353;*/
 	background: rgba(255, 255, 255, 0.3);
 	border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+	border-radius: 5px;
 }
 
 #menu .item img {
@@ -69,7 +66,6 @@ body {
 }
 
 #menu .item.current {
-	/*border-top: 1px solid rgba(255, 255, 255, 0.1);*/
 	background: rgba(255, 255, 255, 0.1);
 	cursor: default;
 }
@@ -114,13 +110,15 @@ button {
 	padding: 5px 10px;
 	display: block;
 	border-style: none;
-	background: rgba(255, 255, 255, 0.1);
 	font-family: Asap;
 	color: #fff;
-	border-bottom: 2px solid rgba(0, 0, 0, 0.2);
 	margin-bottom: 5px;
 	margin-top: 5px;
 	width: 100%;
+	border-radius: 5px;
+
+	background: rgba(255, 255, 255, 0.3);
+	border-bottom: 2px solid rgba(0, 0, 0, 0.4);
 }
 
 button:hover {
@@ -149,6 +147,7 @@ input[type=text] {
 	padding: 5px;
 	color: #fff;
 	width: 200px;
+	border-radius: 5px;
 }
 
 input[type=checkbox] {
@@ -209,15 +208,15 @@ label {
 	display: none;
 }
 
-#modules .content div:hover,
-#devices .device:hover {
+.tab .content .list div {
+	padding: 5px;
+	border-radius: 5px;
+}
+
+.tab .content .list div:hover {
 	cursor: pointer;
 	background: rgba(255, 255, 255, 0.1);
 	color: #fc0;
-}
-
-#devices .device {
-	padding: 5px;
 }
 
 #modules .class.changed {

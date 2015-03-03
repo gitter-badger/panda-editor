@@ -20,15 +20,23 @@
         <div class="item" data-target="assets"><img src="img/icons/image.png"></div>
         <div class="item" data-target="devices"><img src="img/icons/tablet.png"></div>
         <div class="item" data-target="project"><img src="img/icons/gear.png"></div>
+        <div class="item" data-target="plugins"><img src="img/icons/plugin.png"></div>
         <div class="item" data-target="deploy"><img src="img/icons/rocket.png"></div>
         <div class="item" data-target="settings"><img src="img/icons/tools.png"></div>
     </div>
 
-    <div id="settings" class="tab">
-        <div class="header">Settings</div>
+    <div id="modules" class="tab">
+        <div class="header">Modules</div>
         <div class="content">
             <div class="list"></div>
-            <button href="saveSettings">Save changes</button>
+        </div>
+    </div>
+
+    <div id="assets" class="tab">
+        <div class="header">Assets</div>
+        <div class="content">
+            <div class="list"></div>
+            <div class="drop">Drop assets here</div>
         </div>
     </div>
 
@@ -57,19 +65,27 @@
 
     <div id="devices" class="tab">
         <div class="header">Devices</div>
-        <div class="content"></div>
-    </div>
-
-    <div id="assets" class="tab">
-        <div class="header">Assets</div>
         <div class="content">
-            <div class="drop">Drop assets here</div>
+            <div class="list"></div>
+            <button href="reloadGame">Reload all</button>
+            <button href="exitGame">Disconnect all</button>
         </div>
     </div>
 
-    <div id="modules" class="tab">
-        <div class="header">Modules</div>
-        <div class="content"></div>
+    <div id="plugins" class="tab">
+        <div class="header">Plugins</div>
+        <div class="content">
+            <div class="list"></div>
+            <button href="addPlugins">Add plugin</button>
+        </div>
+    </div>
+
+    <div id="settings" class="tab">
+        <div class="header">Editor settings</div>
+        <div class="content">
+            <div class="list"></div>
+            <button href="saveSettings">Save changes</button>
+        </div>
     </div>
 
     <div id="editor"></div>
