@@ -18,63 +18,64 @@
     <div id="menu" class="ace_gutter">
         <div class="item" data-target="modules"><img src="img/icons/bolt.png"></div>
         <div class="item" data-target="assets"><img src="img/icons/image.png"></div>
+        <div class="item" data-target="plugins"><img src="img/icons/plugin.png"></div>
         <div class="item" data-target="devices"><img src="img/icons/tablet.png"></div>
         <div class="item" data-target="project"><img src="img/icons/gear.png"></div>
-        <div class="item" data-target="plugins"><img src="img/icons/plugin.png"></div>
-        <div class="item" data-target="deploy"><img src="img/icons/rocket.png"></div>
+        <div class="item" data-target="deploy"><img src="img/icons/toolbox.png"></div>
         <div class="item" data-target="settings"><img src="img/icons/tools.png"></div>
     </div>
 
     <div id="modules" class="tab">
-        <div class="header ace_keyword">Modules</div>
+        <div class="header ace_function">Classes</div>
         <div class="content">
             <div class="list"></div>
         </div>
     </div>
 
     <div id="assets" class="tab">
-        <div class="header ace_keyword">Assets</div>
+        <div class="header ace_function">Assets</div>
         <div class="content">
             <div class="list"></div>
             <div class="drop">Drop assets here</div>
         </div>
     </div>
 
-    <div id="devices" class="tab">
-        <div class="header ace_keyword">Devices</div>
-        <div class="content">
-            <div class="list"></div>
-            <button href="reloadGame">Reload all</button>
-            <button href="exitGame">Disconnect all</button>
-        </div>
-    </div>
-
-    <div id="project" class="tab">
-        <div class="header ace_keyword">Project settings</div>
-        <div class="content">
-            <label for="projectName">Name:</label><input type="text" id="projectName">
-            <label for="projectWidth">Width:</label><input type="text" id="projectWidth">
-            <label for="projectHeight">Height:</label><input type="text" id="projectHeight">
-            <label for="projectStartScene">StartScene:</label><input type="text" id="projectStartScene">
-            <label for="projectCenter">Center:</label><input type="checkbox" id="projectCenter">
-            <label for="projectScale">Scale:</label><input type="checkbox" id="projectScale">
-            <label for="projectResize">Resize:</label><input type="checkbox" id="projectResize">
-            <label for="projectRotateScreen">RotateScreen:</label><input type="checkbox" id="projectRotateScreen">
-            <label for="projectDebug">Debug:</label><input type="checkbox" id="projectDebug">
-            <button href="saveConfig">Save changes</button>
-        </div>
-    </div>
-
     <div id="plugins" class="tab">
-        <div class="header ace_keyword">Plugins</div>
+        <div class="header ace_function">Plugins</div>
         <div class="content">
             <div class="list"></div>
             <button href="addPlugins">Add plugin</button>
         </div>
     </div>
 
+    <div id="devices" class="tab">
+        <div class="header ace_function">Devices</div>
+        <div class="content">
+            <div class="list"></div>
+            <div class="drop"></div>
+            <button href="reloadGame">Reload all</button>
+            <button href="exitGame">Disconnect all</button>
+        </div>
+    </div>
+
+    <div id="project" class="tab">
+        <div class="header ace_function">Config</div>
+        <div class="content">
+            <label class="ace_keyword" for="projectName">Name:</label><input type="text" id="projectName">
+            <label class="ace_keyword" for="projectWidth">Width:</label><input type="text" id="projectWidth">
+            <label class="ace_keyword" for="projectHeight">Height:</label><input type="text" id="projectHeight">
+            <label class="ace_keyword" for="projectStartScene">StartScene:</label><input type="text" id="projectStartScene">
+            <label class="ace_keyword" for="projectCenter">Center:</label><input type="checkbox" id="projectCenter">
+            <label class="ace_keyword" for="projectScale">Scale:</label><input type="checkbox" id="projectScale">
+            <label class="ace_keyword" for="projectResize">Resize:</label><input type="checkbox" id="projectResize">
+            <label class="ace_keyword" for="projectRotateScreen">RotateScreen:</label><input type="checkbox" id="projectRotateScreen">
+            <label class="ace_keyword" for="projectDebug">Debug:</label><input type="checkbox" id="projectDebug">
+            <button href="saveConfig">Save changes</button>
+        </div>
+    </div>
+
     <div id="deploy" class="tab">
-        <div class="header ace_keyword">Deploy</div>
+        <div class="header ace_function">Toolkit</div>
         <div class="content">
             <div id="engineVersion"></div>
             <button href="openBrowser">Open in browser</button>
@@ -84,7 +85,7 @@
     </div>
 
     <div id="settings" class="tab">
-        <div class="header ace_keyword">Editor settings</div>
+        <div class="header ace_function">Preferences</div>
         <div class="content">
             <div class="list"></div>
             <button href="saveSettings">Save changes</button>

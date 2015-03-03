@@ -5,10 +5,10 @@
   "description": "Panda Editor",
   "main": "index.html",
   "window": {
-    "width": 1280,
-    "height": 720,
+    "width": 980,
+    "height": 520,
     "min_width": 740,
-    "min_height": 378,
+    "min_height": 416,
     "resizable": true,
     "show": false
   },

@@ -2,6 +2,7 @@
 <script>
 var app = {
 	connected: false,
+	connectCounter: 0,
 
 	init: function() {
 		var params = window.location.href.split('?')[1].split('&');
@@ -17,6 +18,11 @@ var app = {
 		this.socket.on('connect', this.onConnect.bind(this));
 		this.socket.on('disconnect', this.onDisconnect.bind(this));
 		this.socket.on('command', this.onCommand.bind(this));
+		window.onbeforeunload = this.closeSocket.bind(this);
+	},
+
+	closeSocket: function() {
+		this.socket.close();
 	},
 
 	onCommand: function(command, param) {
@@ -36,10 +42,12 @@ var app = {
 	},
 
 	exitGame: function() {
+		this.closeSocket();
 		history.back();
 	},
 
 	reloadGame: function() {
+		this.closeSocket();
 		window.location.reload();
 	},
 
@@ -49,9 +57,7 @@ var app = {
 
 	reloadModule: function(module) {
 		game.config.autoStart = false;
-		game.ready = function() {
-			app.changeScene();
-		};
+		game.ready = this.changeScene.bind(this);
 
 		// Delete module classes
 		for (var i = 0; i < game.modules[module].classes.length; i++) {
@@ -78,7 +84,7 @@ game.module('engine.editor')
 .body(function() {
 	game.Debug.inject({
 		init: function() {
-			this._super();
+			this.parent();
 			this.debugDiv.addEventListener('touchstart', function() {
 				history.back();
 			});
@@ -86,7 +92,7 @@ game.module('engine.editor')
 
 		setText: function(text) {
 			text += ' CONNECTED: ' + app.connected;
-			this._super(text);
+			this.parent(text);
 		}
 	});
 });

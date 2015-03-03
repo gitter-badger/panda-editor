@@ -1,6 +1,6 @@
 // TODO
-// Remove module
-// Class Extending!
+// Add/remove module
+// Asset subfolders
 
 var editor = {
     info: require('./package.json'),
@@ -14,6 +14,7 @@ var editor = {
     devices: [],
     // List of assets in project
     assets: {},
+    assetCount: 0,
     assetTypes: [
         'image/png',
         'image/jpeg',
@@ -21,6 +22,7 @@ var editor = {
         'audio/x-m4a',
         'audio/ogg'
     ],
+    plugins: [],
 
     // Default settings
     settings: {
@@ -28,6 +30,8 @@ var editor = {
         port: 3000,
         theme: 'chaos'
     },
+
+    _assetsToCopy: [],
 
     init: function() {
         this.initSettings();
@@ -43,20 +47,32 @@ var editor = {
         window.ondragover = this.dragover.bind(this);
         window.ondragleave = this.dragleave.bind(this);
         window.ondrop = this.filedrop.bind(this);
+        $(window).on('keydown', this.keyDown.bind(this));
+        $(window).on('keyup', this.keyUp.bind(this));
 
         this.initEditor();
         this.onResize();
 
         this.clipboard = this.gui.Clipboard.get();
         this.window = this.gui.Window.get();
+        this.window.on('close', function() {
+            var sure = confirm('Do you want to close editor?');
+            if (sure) this.close(true);
+        });
         
         this.initMenu();
 
         this.loadLastProject();
 
-        this.showTab('modules');
-
         this.window.show();
+    },
+
+    keyDown: function(event) {
+        if (event.keyCode === 16) this._shiftDown = true;
+    },
+
+    keyUp: function(event) {
+        if (event.keyCode === 16) this._shiftDown = false;
     },
 
     buttonClick: function(event) {
@@ -77,6 +93,7 @@ var editor = {
 
         for (var name in this.settings) {
             var label = document.createElement('label');
+            $(label).addClass('ace_keyword');
             $(label).html(name);
             label.for = name;
 
@@ -220,7 +237,11 @@ var editor = {
 
     reloadGame: function() {
         if (!this.io) return;
-        console.log('Emit reloadGame');
+
+        for (var i = 0; i < this.devices.length; i++) {
+            $(this.devices[i].div).remove();
+        }
+        this.devices.length = 0;
         this.io.emit('command', 'reloadGame');
     },
 
@@ -381,17 +402,33 @@ var editor = {
             this.loadProject(path); 
         }
         else {
+            this._assetsToCopy.length = 0;
+
             for (var i = 0; i < event.dataTransfer.files.length; i++) {
                 var file = event.dataTransfer.files[i];
-                console.log(file.type);
+                // console.log(file.type);
                 if (this.assetTypes.indexOf(file.type) !== -1) {
-                    this.copyAsset(file);
+                    this._assetsToCopy.push(file);
                 }
             }
+
+            if (this._assetsToCopy.length > 0) this.copyAssets();
         }
     },
 
+    copyAssets: function() {
+        var file = this._assetsToCopy.pop();
+        if (!file) {
+            this.modules['game.assets'].changed = true;
+            this.saveChanges();
+            return;
+        }
+
+        this.copyAsset(file);
+    },
+
     copyAsset: function(file) {
+        console.log('Copying asset ' + file);
         this.copyFile(file.path, this.currentProject + '/media/' + file.name, this.addAsset.bind(this, file.name));
     },
 
@@ -419,12 +456,20 @@ var editor = {
         }
     },
 
-    addAsset: function(filename, err) {
+    assetCopied: function(filename, err) {
         if (err) return console.log('Error copying asset');
+        this.addAsset(filename);
+        this.copyAssets();
+    },
 
-        // $('#assets .drop').remove();
+    addAsset: function(filename) {
+        if (filename.indexOf('.') === 0) return;
+        if (filename === 'Thumbs.db') return;
 
         this.assets[filename] = filename;
+        this.assetCount++;
+
+        $('#assets .header').html('Assets (' + this.assetCount + ')');
 
         var div = document.createElement('div');
         $(div).html(filename);
@@ -436,10 +481,16 @@ var editor = {
         var sure = confirm('Remove asset ' + filename + '? (File will be deleted)');
         if (!sure) return;
 
+        delete this.assets[filename];
         $(div).remove();
         this.fs.unlink(this.currentProject + '/media/' + filename, function(err) {
             if (err) console.log(err);
         });
+        this.assetCount--;
+        $('#assets .header').html('Assets (' + this.assetCount + ')');
+
+        this.modules['game.assets'].changed = true;
+        this.saveChanges();
     },
 
     resizeDown: function(event) {
@@ -503,24 +554,38 @@ var editor = {
         return result;
     },
 
+    foldModule: function(div) {
+        if ($(div).hasClass('folded')) {
+            $(div).nextUntil('div.module').show();
+            $(div).removeClass('folded');
+        }
+        else {
+            $(div).nextUntil('div.module').hide();
+            $(div).addClass('folded');
+        }
+    },
+
     updateModuleList: function() {
         // Sort modules
         this.modules = this.ksort(this.modules);
 
         // Sort classes
         for (var module in this.modules) {
-            this.modules[module].classes = this.ksort(this.modules[module].classes);
+            // this.modules[module].classes = this.ksort(this.modules[module].classes);
         }
 
         $('#modules .content .list').html('');
 
+        var classCount = 0;
         for (var name in this.modules) {
             if (name === 'game.assets') continue;
+            if (name === 'game.main') continue;
             var div = document.createElement('div');
+            $(div).addClass('module');
             $(div).addClass('ace_string');
             $(div).html(name.substr(5));
             $(div).appendTo($('#modules .content .list'));
-            $(div).click(this.editClass.bind(this, null, name));
+            $(div).click(this.foldModule.bind(this, div));
 
             this.modules[name].div = div;
 
@@ -530,9 +595,11 @@ var editor = {
             $(button).appendTo(div);
 
             for (var className in this.modules[name].classes) {
+                classCount++;
+                var classObj = this.modules[name].classes[className];
                 var div = document.createElement('div');
                 $(div).addClass('class');
-                $(div).html(className);
+                $(div).html(this.getClassName(className, classObj.extend));
                 $(div).appendTo($('#modules .content .list'));
                 $(div).click(this.editClass.bind(this, className, name));
 
@@ -543,6 +610,44 @@ var editor = {
                 }
             }
         }
+
+        $('#modules .header').html('Classes (' + classCount + ')');
+    },
+
+    getClassName: function(className, extend) {
+        if (extend !== 'Class' && extend !== 'Scene') {
+            return extend + ' > ' + className;
+        }
+        if (extend === 'Scene') {
+            return className.replace('Scene', '');
+        }
+        return className;
+    },
+
+    renameCurrentClass: function() {
+        if (!this.currentClass || !this.currentModule) return;
+
+        var newName = prompt('New class name for ' + this.currentClass + ':', this.currentClass);
+        newName = this.stripClassName(newName);
+        if (!newName) return;
+
+        var module = this.modules[this.currentModule];
+        module.classes[newName] = module.classes[this.currentClass];
+        delete module.classes[this.currentClass];
+
+        module.classes[newName].name = newName;
+        this.currentClass = newName;
+
+        module.changed = true;
+        this.saveChanges();
+        this.updateModuleList();
+    },
+
+    stripClassName: function(className) {
+        if (!className) return;
+        className = className.replace(/[\s\W]/g, '');
+        className = className.substr(0, 16); // Max length
+        return className;
     },
 
     changeFontSize: function(amount) {
@@ -555,8 +660,7 @@ var editor = {
 
     newModule: function() {
         var moduleName = prompt('New module name:');
-        if (moduleName) moduleName = moduleName.replace(/[\s\W]/g, '');
-        if (moduleName) moduleName = moduleName.substr(0, 16); // Max length
+        moduleName = this.stripClassName(moduleName);
         if (!moduleName) return;
         moduleName = 'game.' + moduleName;
         if (this.modules[moduleName]) return;
@@ -591,8 +695,100 @@ var editor = {
         this.editor.focus();
     },
 
+    getModuleObjectForClass: function(forClass) {
+        for (var module in this.modules) {
+            for (var className in this.modules[module].classes) {
+                if (className === forClass) return this.modules[module];
+            }
+        }
+    },
+
+    getModuleNameForClass: function(forClass) {
+        for (var module in this.modules) {
+            for (var className in this.modules[module].classes) {
+                if (className === forClass) return module;
+            }
+        }
+    },
+
+    extendCurrentClass: function(extend) {
+        var classObj = this.getCurrentClassObject();
+        if (!classObj) return;
+        if (extend.indexOf('Scene') === 0) {
+            var sceneName = extend.replace('Scene', '');
+            if (this.config.system.startScene === sceneName) return;
+
+            $('#projectStartScene').val(sceneName);
+            this.saveConfig(true);
+
+            this.io.emit('command', 'changeScene', sceneName);
+            return;
+        }
+        if (classObj.extend === 'Scene') return;
+        if (classObj.name === extend && extend === 'Class') return;
+        if (!this.modules[this.currentModule].classes[extend]) return;
+
+        if (classObj.name === extend) extend = 'Class';
+
+        // Check that class is not extending to itself
+        var module = this.modules[this.currentModule];
+        var parent = module.classes[extend];
+        var extendToItself = false;
+        while (parent) {
+            if (parent.extend === classObj.name) {
+                console.log('Class extending to itself');
+                extendToItself = true;
+                break;
+            }
+            parent = module.classes[parent.extend];
+        }
+        if (extendToItself) return;
+
+        classObj.extend = extend;
+        var className = this.getClassName(classObj.name, classObj.extend);
+        $(classObj.div).html(className);
+
+        // Reorder classes
+        
+        var classes = [];
+        for (var className in module.classes) {
+            classes.push(module.classes[className]);
+        }
+        module.classes = {};
+        while (classes.length > 0) {
+            var nextClass = classes.shift();
+
+            // Check if class is extended
+            if (nextClass.extend === 'Class') {
+                // Not extended
+                module.classes[nextClass.name] = nextClass;
+                continue;
+            }
+
+            // If extended, check if extended class already added
+            var classAdded = false;
+            for (var className in module.classes) {
+                if (nextClass.extend === className) {
+                    // Already added, put class to next in list and continue
+                    module.classes[nextClass.name] = nextClass;
+                    classAdded = true;
+                    continue;
+                }
+            }
+            if (classAdded) continue;
+
+            // Extended class not added yet, put class back to end of array
+            classes.push(nextClass);
+        }
+
+        this.modules[this.currentModule].changed = true;
+        this.saveChanges();
+        this.updateModuleList();
+    },
+
     editClass: function(name, module) {
-        if (this.currentClass === name && this.currentModule === module) return;
+        if (this._shiftDown && this.currentClass) return this.extendCurrentClass(name);
+        if (this.currentClass === name && this.currentModule === module) return this.renameCurrentClass();
 
         var classObj = this.getCurrentClassObject();
         if (classObj) $(classObj.div).removeClass('current');
@@ -644,6 +840,7 @@ var editor = {
     loadLastProject: function() {
         var lastProject = this.getStorage('lastProject', true);
         if (lastProject) this.loadProject(lastProject);
+        this.showTab('modules');
     },
 
     loadProject: function(dir) {
@@ -686,6 +883,8 @@ var editor = {
         this.config.system = this.config.system || {};
         this.config.debug = this.config.debug || {};
 
+        this.window.title = this.info.description + ' - ' + this.config.name + ' ' + this.config.version;
+
         $('#projectName').val(this.config.name);
         $('#projectWidth').val(this.config.system.width);
         $('#projectHeight').val(this.config.system.height);
@@ -693,17 +892,16 @@ var editor = {
         $('#projectCenter').prop('checked', this.config.system.center);
         $('#projectScale').prop('checked', this.config.system.scale);
         $('#projectResize').prop('checked', this.config.system.resize);
+        if (typeof this.config.system.startScene === 'undefined') this.config.system.startScene = 'Main';
         if (typeof this.config.system.rotateScreen === 'undefined') this.config.system.rotateScreen = true;
         $('#projectRotateScreen').prop('checked', this.config.system.rotateScreen);
         $('#projectDebug').prop('checked', this.config.debug.enabled);
-
-        this.window.title = this.info.description + ' - ' + this.config.name + ' ' + this.config.version;
 
         console.log('Loading modules');
         this.loadModuleData();
     },
 
-    saveConfig: function() {
+    saveConfig: function(dontReload) {
         this.config.name = $('#projectName').val();
         this.config.system.width = parseInt($('#projectWidth').val());
         this.config.system.height = parseInt($('#projectHeight').val());
@@ -714,13 +912,17 @@ var editor = {
         this.config.system.rotateScreen = $('#projectRotateScreen').is(':checked');
         this.config.debug.enabled = $('#projectDebug').is(':checked');
 
+        this.window.title = this.info.description + ' - ' + this.config.name + ' ' + this.config.version;
+
         this.fs.writeFile(this.currentProject + '/src/game/config.js', 'pandaConfig = ' + JSON.stringify(this.config, null, 4) + ';', {
             encoding: 'utf-8'
         }, function(err) {
             if (err) console.log('Error writing config');
         });
 
-        this.io.emit('command', 'reloadGame');
+        if (!dontReload) this.io.emit('command', 'reloadGame');
+
+        this.updateModuleList();
     },
 
     loadModuleData: function() {
@@ -802,6 +1004,10 @@ var editor = {
                     var lastArg = args[args.length - 1];
                     // console.log(lastArg);
 
+                    var classExtend = 'Class';
+                    var secondArg = args[1];
+                    if (secondArg.value) classExtend = secondArg.value;
+
                     var firstPropRange = lastArg.properties[0].range;
                     var lastPropRange = lastArg.properties[lastArg.properties.length - 1].range;
 
@@ -812,9 +1018,12 @@ var editor = {
 
                     // console.log(strData);
                     var className = args[0].value;
-                    if (expName === 'createScene') className = 'Scene' + className;
+                    if (expName === 'createScene') {
+                        className = 'Scene' + className;
+                        classExtend = 'Scene';
+                    }
 
-                    this.newClassObject(className, name, strData);
+                    this.newClassObject(className, name, strData, classExtend);
                 }
                 else {
 
@@ -866,6 +1075,9 @@ var editor = {
         $(div).html(name);
         $(div).click(this.removePlugin.bind(this, div, name));
         $(div).appendTo($('#plugins .content .list'));
+
+        this.plugins.push(name);
+        $('#plugins .header').html('Plugins (' + this.plugins.length + ')');
     },
 
     removePlugin: function(div, name) {
@@ -873,6 +1085,10 @@ var editor = {
         if (!sure) return;
 
         $(div).remove();
+
+        var index = this.plugins.indexOf(name);
+        this.plugins.splice(index, 1);
+        $('#plugins .header').html('Plugins (' + this.plugins.length + ')');
 
         console.log('TODO');
     },
@@ -883,6 +1099,17 @@ var editor = {
             this.staticServe = this.express.static(this.currentProject);
             this.io.emit('command', 'reloadGame');
             return;
+        }
+
+        // Get ip address
+        var os = require('os');
+        var ifaces = os.networkInterfaces();
+        for (var ifname in ifaces) {
+            for (var i = 0; i < ifaces[ifname].length; i++) {
+                var iface = ifaces[ifname][i];
+                if ('IPv4' !== iface.family || iface.internal !== false) continue;
+                $('#devices .content .drop').html(iface.address + ':' + this.settings.port);
+            }
         }
         
         var app = this.express();
@@ -906,9 +1133,9 @@ var editor = {
         });
 
         io.on('connection', function(socket){
-            console.log('Client connected');
+            console.log('Device connected');
             socket.on('disconnect', function() {
-                console.log('Client disconnected');
+                console.log('Device disconnected');
                 for (var i = editor.devices.length - 1; i >= 0; i--) {
                     var device = editor.devices[i];
                     if (this === device.socket) {
@@ -936,12 +1163,18 @@ var editor = {
             data.platform = 'Desktop';
             data.model = 'browser';
         }
+        if (data.platform === 'Win32NT') {
+            data.platform = 'Window';
+            data.model = 'Phone';
+        }
         this.devices.push(data);
         this.updateDeviceList();
         console.log('Registered device ' + data.platform + ' ' + data.model);
     },
 
     updateDeviceList: function() {
+        $('#devices .header').html('Devices (' + this.devices.length + ')');
+        
         $('#devices .content .list').html('');
         for (var i = 0; i < this.devices.length; i++) {
             var device = this.devices[i];
@@ -976,11 +1209,12 @@ var editor = {
         this.hideLoader();
     },
 
-    newClassObject: function(className, module, data) {
+    newClassObject: function(className, module, data, extend) {
         var session = ace.createEditSession(data, 'ace/mode/javascript');
         var classObj = {
             name: className,
-            session: session
+            session: session,
+            extend: extend
         };
         session.on('change', this.onChange.bind(this, classObj));
         this.modules[module].classes[className] = classObj;
@@ -1015,7 +1249,7 @@ var editor = {
 
         if (hasUndo && !classObj.changed) {
             classObj.changed = true;
-            $(classObj.div).html(classObj.name + '*');
+            $(classObj.div).html($(classObj.div).html() + '*');
             $(classObj.div).addClass('changed');
         }
     },
@@ -1110,7 +1344,15 @@ var editor = {
                 }
                 data += '.body(function() {\n\n';
 
+                if (module === 'game.assets') {
+                    for (var asset in this.assets) {
+                        data += 'game.addAsset(\'' + asset + '\');\n';
+                    }
+                    data += '\n';
+                }
+
                 for (var className in this.modules[module].classes) {
+                    var classObj = this.modules[module].classes[className];
                     var funcName = 'createClass';
                     var strClassName = className;
                     if (className.indexOf('Scene') === 0) {
@@ -1118,6 +1360,9 @@ var editor = {
                         strClassName = strClassName.replace('Scene', '');
                     }
                     data += 'game.' + funcName + '(\'' + strClassName + '\', ';
+                    if (classObj.extend !== 'Class' && classObj.extend !== 'Scene') {
+                        data += '\'' + classObj.extend +'\', ';
+                    }
                     data += this.modules[module].classes[className].session.getValue();
                     data += ');\n\n';
                 }
@@ -1142,7 +1387,7 @@ var editor = {
             classObj.changed = false;
             classObj.savedData = classObj.data;
             $(classObj.div).removeClass('changed');
-            $(classObj.div).html(className);
+            $(classObj.div).html(this.getClassName(className, classObj.extend));
         }
 
         this.modules[module].changed = false;

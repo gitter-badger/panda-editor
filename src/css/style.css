@@ -73,11 +73,11 @@ body {
 .tab {
 	height: 100%;
 	float: left;
-	overflow: hidden;
 	position: relative;
 	width: 230px;
 	display: none;
 	border-right: 1px solid rgba(255, 255, 255, 0.1);
+	overflow: auto;
 }
 
 .tab .header {
@@ -88,7 +88,6 @@ body {
 
 .tab .content {
 	position: relative;
-	height: 100%;
 	padding: 10px;
 }
 
@@ -132,13 +131,14 @@ button:active {
 	border-bottom: 2px solid rgba(0, 0, 0, 0.2);
 }
 
-#assets .drop {
+.drop {
 	margin-top: 10px;
 	color: rgba(255, 255, 255, 0.3);
 	text-align: center;
 	border: 2px dashed rgba(255, 255, 255, 0.3);
 	border-radius: 5px;
-	padding: 20px 10px;
+	padding: 10px 10px;
+	cursor: default;
 }
 
 input[type=text] {
@@ -239,8 +239,8 @@ label {
 
 #loader {
 	position: absolute;
-	right: 10px;
-	bottom: 10px;
+	left: 9px;
+	bottom: 9px;
 	z-index: 9999;
 	display: none;
 	-webkit-animation:spin 4s linear infinite;
