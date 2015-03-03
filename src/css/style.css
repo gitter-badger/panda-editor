@@ -133,9 +133,10 @@ button:active {
 }
 
 #assets .drop {
-	color: rgba(255, 255, 255, 0.2);
+	margin-top: 10px;
+	color: rgba(255, 255, 255, 0.3);
 	text-align: center;
-	border: 2px dashed rgba(255, 255, 255, 0.2);
+	border: 2px dashed rgba(255, 255, 255, 0.3);
 	border-radius: 5px;
 	padding: 20px 10px;
 }
@@ -161,11 +162,6 @@ label {
 	float: left;
 	display: block;
 	margin-bottom: 4px;
-}
-
-#modules .module {
-	padding-left: 4px;
-	color: #90a959;
 }
 
 #modules button {
@@ -195,13 +191,8 @@ label {
 	margin-left: 5px;
 }
 
-#modules .module {
-	padding: 5px;
-}
-
 #modules .class {
-	padding: 5px;
-	padding-left: 25px;
+	padding-left: 20px;
 }
 
 #modules .content div button {

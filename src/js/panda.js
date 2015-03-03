@@ -26,7 +26,7 @@ var editor = {
     settings: {
         fontSize: 16,
         port: 3000,
-        theme: 'sunburst'
+        theme: 'chaos'
     },
 
     init: function() {
@@ -84,7 +84,7 @@ var editor = {
             input.type = 'text';
             input.id = name;
             input.value = this.settings[name];
-
+            
             $(label).appendTo($('#settings .content .list'));
             $(input).appendTo($('#settings .content .list'));
         }
@@ -144,8 +144,8 @@ var editor = {
         
         this.editor.setOptions({
             enableBasicAutocompletion: true,
-            enableSnippets: true,
             enableLiveAutocompletion: true,
+            enableSnippets: true,
             showPrintMargin: false,
             displayIndentGuides: true,
             showFoldWidgets: false
@@ -232,22 +232,21 @@ var editor = {
 
         // Project menu
         var project = new this.gui.Menu();
-        project.append(new this.gui.MenuItem({ label: 'Open in browser', click: this.viewProject.bind(this) }));
-        project.append(new this.gui.MenuItem({ label: 'Edit config', click: this.editConfig.bind(this) }));
-        project.append(new this.gui.MenuItem({ label: 'Build project', click: this.buildProject.bind(this) }));
         project.append(new this.gui.MenuItem({ label: 'Create new project', click: this.createProject.bind(this) }));
+        project.append(new this.gui.MenuItem({ label: 'Open in browser', click: this.openBrowser.bind(this) }));
+        project.append(new this.gui.MenuItem({ label: 'Build project', click: this.buildProject.bind(this) }));
         project.append(new this.gui.MenuItem({ label: 'Update engine', click: this.updateEngine.bind(this) }));
         
         // Show menu
-        // var show = new this.gui.Menu();
-        // $('.tab').each(this.addShowMenuItem.bind(this, show));
+        var show = new this.gui.Menu();
+        $('.tab').each(this.addShowMenuItem.bind(this, show));
 
         // Help menu
         var help = new this.gui.Menu();
         help.append(new this.gui.MenuItem({ label: 'About' }));
         
         menubar.insert(new this.gui.MenuItem({ label: 'Project', submenu: project }), 1);
-        // menubar.append(new this.gui.MenuItem({ label: 'Show', submenu: show }));
+        menubar.append(new this.gui.MenuItem({ label: 'Show', submenu: show }));
         menubar.append(new this.gui.MenuItem({ label: 'Help', submenu: help }));
 
         this.window.menu = menubar;
@@ -257,12 +256,12 @@ var editor = {
         var id = $(tab).attr('id');
 
         var name = id.charAt(0).toUpperCase() + id.substr(1);
-        menu.append(new this.gui.MenuItem({ label: name, click: this.toggleTab.bind(this, id) }));
+        menu.append(new this.gui.MenuItem({ label: name, click: this.showTab.bind(this, id) }));
 
         this.editor.commands.addCommand({
             name: 'toggleTab' + name,
             bindKey: { mac: 'Cmd-' + (index + 1), win: 'Alt-' + (index + 1) },
-            exec: this.toggleTab.bind(this, id)
+            exec: this.showTab.bind(this, id)
         });
     },
 
@@ -273,17 +272,18 @@ var editor = {
         $('.tab').hide();
         $('#' + tab).show();
         this.onResize();
+
+        this.editor.focus();
     },
 
-    viewProject: function() {
+    openBrowser: function() {
         this.gui.Shell.openExternal('http://localhost:' + this.settings.port + '/dev.html');
     },
 
     updateEngine: function() {
-        console.log('TODO');
-    },
+        var sure = confirm('Update engine to latest version?');
+        if (!sure) return;
 
-    editConfig: function() {
         console.log('TODO');
     },
 
@@ -422,14 +422,24 @@ var editor = {
     addAsset: function(filename, err) {
         if (err) return console.log('Error copying asset');
 
-        $('#assets .drop').remove();
+        // $('#assets .drop').remove();
 
         this.assets[filename] = filename;
 
         var div = document.createElement('div');
         $(div).html(filename);
-
+        $(div).click(this.removeAsset.bind(this, div, filename));
         $(div).appendTo($('#assets .content .list'));
+    },
+
+    removeAsset: function(div, filename) {
+        var sure = confirm('Remove asset ' + filename + '? (File will be deleted)');
+        if (!sure) return;
+
+        $(div).remove();
+        this.fs.unlink(this.currentProject + '/media/' + filename, function(err) {
+            if (err) console.log(err);
+        });
     },
 
     resizeDown: function(event) {
@@ -507,7 +517,7 @@ var editor = {
         for (var name in this.modules) {
             if (name === 'game.assets') continue;
             var div = document.createElement('div');
-            $(div).addClass('module');
+            $(div).addClass('ace_string');
             $(div).html(name.substr(5));
             $(div).appendTo($('#modules .content .list'));
             $(div).click(this.editClass.bind(this, null, name));
@@ -679,9 +689,12 @@ var editor = {
         $('#projectName').val(this.config.name);
         $('#projectWidth').val(this.config.system.width);
         $('#projectHeight').val(this.config.system.height);
+        $('#projectStartScene').val(this.config.system.startScene);
         $('#projectCenter').prop('checked', this.config.system.center);
         $('#projectScale').prop('checked', this.config.system.scale);
         $('#projectResize').prop('checked', this.config.system.resize);
+        if (typeof this.config.system.rotateScreen === 'undefined') this.config.system.rotateScreen = true;
+        $('#projectRotateScreen').prop('checked', this.config.system.rotateScreen);
         $('#projectDebug').prop('checked', this.config.debug.enabled);
 
         this.window.title = this.info.description + ' - ' + this.config.name + ' ' + this.config.version;
@@ -694,9 +707,11 @@ var editor = {
         this.config.name = $('#projectName').val();
         this.config.system.width = parseInt($('#projectWidth').val());
         this.config.system.height = parseInt($('#projectHeight').val());
+        this.config.system.startScene = $('#projectStartScene').val();
         this.config.system.center = $('#projectCenter').is(':checked');
         this.config.system.scale = $('#projectScale').is(':checked');
         this.config.system.resize = $('#projectResize').is(':checked');
+        this.config.system.rotateScreen = $('#projectRotateScreen').is(':checked');
         this.config.debug.enabled = $('#projectDebug').is(':checked');
 
         this.fs.writeFile(this.currentProject + '/src/game/config.js', 'pandaConfig = ' + JSON.stringify(this.config, null, 4) + ';', {

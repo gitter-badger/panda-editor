@@ -43,14 +43,14 @@ var app = {
 		window.location.reload();
 	},
 
-	reloadScene: function(scene) {
+	changeScene: function(scene) {
 		game.system.setScene(scene || game.system.sceneName);
 	},
 
 	reloadModule: function(module) {
 		game.config.autoStart = false;
 		game.ready = function() {
-			app.reloadScene();
+			app.changeScene();
 		};
 
 		// Delete module classes
