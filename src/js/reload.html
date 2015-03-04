@@ -52,6 +52,11 @@ var app = {
 	},
 
 	changeScene: function(scene) {
+		if (game.assetQueue.length > 0) {
+			var loader = new game.Loader(scene || game.system.sceneName);
+			loader.start();
+			return;
+		}
 		game.system.setScene(scene || game.system.sceneName);
 	},
 

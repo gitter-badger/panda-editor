@@ -11,9 +11,7 @@ var editor = {
     esprima: require('esprima'),
     express: require('express'),
 
-    // List of connected devices
     devices: [],
-    // List of assets in project
     assets: {},
     assetCount: 0,
     assetTypes: [
@@ -25,38 +23,38 @@ var editor = {
     ],
     plugins: [],
     contextMenus: {},
+    ipAddresses: [],
+    prevSettings: {},
+    assetsToCopy: [],
 
     // Default settings
     settings: {
         fontSize: 16,
         port: 3000,
-        theme: 'chaos'
+        theme: 'sunburst'
     },
 
-    _assetsToCopy: [],
-
     init: function() {
-        this.initSettings();
-        this.applySettings();
+        this.initPreferences();
+        this.initEvents();
+        this.initContextMenus();
+        // this.initEditor();
+        this.initWindow();
 
-        $('.tab .resize').mousedown(this.resizeDown.bind(this));
-        $(window).mousemove(this.resizeMove.bind(this));
-        $(window).mouseup(this.resizeUp.bind(this));
-        $('#settings input').on('change', this.updateSettings.bind(this));
+        // this.loadLastProject();
+    },
+
+    initEvents: function() {
         $('#menu .item').click(this.menuClick.bind(this));
         $('button').click(this.buttonClick.bind(this));
         window.addEventListener('resize', this.onResize.bind(this));
         window.ondragover = this.dragover.bind(this);
         window.ondragleave = this.dragleave.bind(this);
         window.ondrop = this.filedrop.bind(this);
-
-        this.initContextMenu();
         $(document).bind('contextmenu', this.showContextMenu.bind(this));
+    },
 
-        this.initEditor();
-        this.onResize();
-
-        this.clipboard = this.gui.Clipboard.get();
+    initWindow: function() {
         this.window = this.gui.Window.get();
         this.window.on('close', function() {
             var sure = confirm('Do you want to close editor?');
@@ -65,61 +63,53 @@ var editor = {
         
         this.initMenu();
 
-        this.loadLastProject();
-
         this.window.show();
     },
 
-    initContextMenu: function() {
-        var menu = new this.gui.Menu();
-        var item = new this.gui.MenuItem({ label: 'Extend', click: this.contextMenuClick.bind(this, 'extend') });
-        menu.append(item);
-        var item = new this.gui.MenuItem({ label: 'Rename', click: this.contextMenuClick.bind(this, 'rename') });
-        menu.append(item);
-        var item = new this.gui.MenuItem({ label: 'Remove', click: this.contextMenuClick.bind(this, 'remove') });
-        menu.append(item);
-        this.contextMenus.class = menu;
+    initContextMenus: function() {
+        this.newContextMenu('class');
+        this.addContextMenuItem('class', 'Extend', 'extendClass');
+        this.addContextMenuItem('class', 'Rename', 'renameClass');
+        this.addContextMenuItem('class', 'Duplicate', 'duplicateClass');
+        this.addContextMenuItem('class', 'Remove', 'removeClass');
 
-        var menu = new this.gui.Menu();
-        var item = new this.gui.MenuItem({ label: 'Change scene', click: this.contextMenuClick.bind(this, 'changeScene') });
-        menu.append(item);
-        var item = new this.gui.MenuItem({ label: 'Set start scene', click: this.contextMenuClick.bind(this, 'setStartScene') });
-        menu.append(item);
-        var item = new this.gui.MenuItem({ label: 'Remove', click: this.contextMenuClick.bind(this, 'remove') });
-        menu.append(item);
-        this.contextMenus.scene = menu;
+        this.newContextMenu('scene');
+        this.addContextMenuItem('scene', 'Change scene', 'changeScene');
+        this.addContextMenuItem('scene', 'Set start scene', 'setStartScene');
+        this.addContextMenuItem('scene', 'Remove', 'removeClass');
+
+        this.newContextMenu('asset');
+        this.addContextMenuItem('asset', 'Remove', 'removeAsset');
+
+        this.newContextMenu('module');
+        this.addContextMenuItem('module', 'New class', 'newClass');
     },
 
-    contextMenuClick: function(item) {
-        if (!this.contextMenuClass) return;
+    newContextMenu: function(name) {
+        this.contextMenus[name] = new this.gui.Menu();
+    },
 
-        if (item === 'changeScene') return this.io.emit('command', 'changeScene', this.contextMenuClass.replace('Scene', ''));
-        if (item === 'setStartScene') {
-            var sceneName = this.contextMenuClass.replace('Scene', '');
-            if (this.config.system.startScene === sceneName) return;
-            $('#projectStartScene').val(sceneName);
-            this.saveConfig(true);
-            return;
-        }
+    addContextMenuItem: function(menu, label, command) {
+        var item = new this.gui.MenuItem({ label: label, click: this.contextMenuClick.bind(this, command) });
+        this.contextMenus[menu].append(item);
+    },
 
-        if (item === 'rename') return this.renameClass(this.contextMenuClass);
-        if (item === 'remove') return this.removeClass(this.contextMenuClass);
+    contextMenuClick: function(command) {
+        if (!this.contextMenuTargetName) return;
+        if (typeof this[command] !== 'function') return;
 
-        if (!this.currentClass) return;
-
-        if (item === 'extend') return this.extendClass(this.currentClass, this.contextMenuClass);
+        this[command](this.contextMenuTargetName, this.contextMenuTargetDiv);
     },
 
     showContextMenu: function(event) {
-        var className = $(event.target).attr('data-name');
-        if ($(event.target).hasClass('class') && className) {
-            this.contextMenuClass = className;
+        var target = event.target;
+        var targetClass = $(target).attr('class').split(' ')[0];
+        this.contextMenuTargetDiv = target;
+        this.contextMenuTargetName = $(target).attr('data-name');
 
-            if (className.indexOf('Scene') === 0) this.contextMenu = this.contextMenus.scene;
-            else this.contextMenu = this.contextMenus.class;
+        if (targetClass === 'class' && this.contextMenuTargetName.indexOf('Scene') === 0) targetClass = 'scene';
 
-            this.contextMenu.popup(event.originalEvent.x, event.originalEvent.y);
-        }
+        if (this.contextMenus[targetClass]) this.contextMenus[targetClass].popup(event.originalEvent.x, event.originalEvent.y);
     },
 
     buttonClick: function(event) {
@@ -127,16 +117,31 @@ var editor = {
         if (typeof this[target] === 'function') this[target]();
     },
 
-    resetSettings: function() {
-        localStorage.setItem('settings', null);
+    resetPreferences: function() {
+        localStorage.setItem('preferences', null);
     },
 
-    initSettings: function() {
-        // Load saved settings
-        var savedSettings = JSON.parse(localStorage.getItem('settings'));
+    setStartScene: function(name) {
+        name = name.replace('Scene', '');
+        if (this.config.system.startScene === name) return;
+
+        $('#projectStartScene').val(name);
+        this.saveConfig(true);
+    },
+
+    changeScene: function(name) {
+        name = name.replace('Scene', '');
+        console.log('Emite changeScene ' + name);
+        this.io.emit('command', 'changeScene', name);
+    },
+
+    initPreferences: function() {
+        // Load saved preferences
+        var savedSettings = JSON.parse(localStorage.getItem('preferences'));
         for (var name in savedSettings) {
             this.settings[name] = savedSettings[name];
         }
+        this.prevSettings = this.settings;
 
         for (var name in this.settings) {
             var label = document.createElement('label');
@@ -149,51 +154,41 @@ var editor = {
             input.id = name;
             input.value = this.settings[name];
             
-            $(label).appendTo($('#settings .content .list'));
-            $(input).appendTo($('#settings .content .list'));
+            $(label).appendTo($('#preferences .content .list'));
+            $(input).appendTo($('#preferences .content .list'));
         }
+
+        this.applyPreferences(true);
     },
 
-    applySettings: function() {
+    applyPreferences: function(dontSave) {
+        if (!dontSave) this.savePreferences();
+
         if (this.editor) this.editor.setTheme('ace/theme/' + this.settings.theme);
         document.body.className = 'ace-' + this.settings.theme.replace(/\_/g, '-');
 
-        this.currentFontSize = parseInt(this.settings.fontSize);
-        this.changeFontSize(0);
+        this.setFontSize(parseInt(this.settings.fontSize));
+
+        if (this.prevSettings.port !== this.settings.port && this.http) this.restartServer();
     },
 
-    saveSettings: function() {
-        console.log('Saving settings');
+    savePreferences: function() {
+        console.log('Saving preferences');
+
+        this.prevSettings = this.settings;
         var settings = {};
-        $('#settings input').each(function(index, elem) {
+        $('#preferences input').each(function(index, elem) {
             var id = $(elem).attr('id');
             var value = $(elem).val();
             settings[id] = value;
         });
         this.settings = settings;
-        localStorage.setItem('settings', JSON.stringify(this.settings));
-
-        this.applySettings();
+        localStorage.setItem('preferences', JSON.stringify(this.settings));
     },
 
     menuClick: function(event) {
         var target = $(event.currentTarget).attr('data-target');
-        
         this.showTab(target);
-    },
-
-    updateSettings: function(event) {
-        var id = $(event.target).attr('id');
-        var value = !!$(event.target).is(':checked');
-        var label = $('label[for="' + id + '"]');
-
-        if (!value) $(label).addClass('disabled');
-        else $(label).removeClass('disabled');
-        this.settings[id] = value;
-
-        if (id.indexOf('device_') === 0) {
-            this.io.emit('updateSettings', id, value);
-        }
     },
 
     initEditor: function() {
@@ -271,6 +266,7 @@ var editor = {
         });
 
         this.editor.focus();
+        this.onResize();
     },
 
     toggleCurrentTab: function() {
@@ -305,32 +301,14 @@ var editor = {
         project.append(new this.gui.MenuItem({ label: 'Build project', click: this.buildProject.bind(this) }));
         project.append(new this.gui.MenuItem({ label: 'Update engine', click: this.updateEngine.bind(this) }));
         
-        // Show menu
-        var show = new this.gui.Menu();
-        $('.tab').each(this.addShowMenuItem.bind(this, show));
-
         // Help menu
         var help = new this.gui.Menu();
         help.append(new this.gui.MenuItem({ label: 'About' }));
         
         menubar.insert(new this.gui.MenuItem({ label: 'Project', submenu: project }), 1);
-        menubar.append(new this.gui.MenuItem({ label: 'Show', submenu: show }));
         menubar.append(new this.gui.MenuItem({ label: 'Help', submenu: help }));
 
         this.window.menu = menubar;
-    },
-
-    addShowMenuItem: function(menu, index, tab) {
-        var id = $(tab).attr('id');
-
-        var name = id.charAt(0).toUpperCase() + id.substr(1);
-        menu.append(new this.gui.MenuItem({ label: name, click: this.showTab.bind(this, id) }));
-
-        this.editor.commands.addCommand({
-            name: 'toggleTab' + name,
-            bindKey: { mac: 'Cmd-' + (index + 1), win: 'Alt-' + (index + 1) },
-            exec: this.showTab.bind(this, id)
-        });
     },
 
     showTab: function(tab) {
@@ -341,7 +319,7 @@ var editor = {
         $('#' + tab).show();
         this.onResize();
 
-        this.editor.focus();
+        if (this.editor) this.editor.focus();
     },
 
     openBrowser: function() {
@@ -449,34 +427,35 @@ var editor = {
             this.loadProject(path); 
         }
         else {
-            this._assetsToCopy.length = 0;
+            this.assetsToCopy.length = 0;
 
             for (var i = 0; i < event.dataTransfer.files.length; i++) {
                 var file = event.dataTransfer.files[i];
                 // console.log(file.type);
                 if (this.assetTypes.indexOf(file.type) !== -1) {
-                    this._assetsToCopy.push(file);
+                    this.assetsToCopy.push(file);
                 }
             }
 
-            if (this._assetsToCopy.length > 0) this.copyAssets();
+            if (this.assetsToCopy.length > 0) this.copyAssets();
         }
     },
 
     copyAssets: function() {
-        var file = this._assetsToCopy.pop();
+        var file = this.assetsToCopy.pop();
         if (!file) {
             this.modules['game.assets'].changed = true;
             this.saveChanges();
             return;
         }
 
-        this.copyAsset(file);
+        console.log('Copying asset ' + file.path);
+        this.copyFile(file.path, this.currentProject + '/media/' + file.name, this.assetCopied.bind(this, file.name));
     },
 
-    copyAsset: function(file) {
-        console.log('Copying asset ' + file);
-        this.copyFile(file.path, this.currentProject + '/media/' + file.name, this.addAsset.bind(this, file.name));
+    assetCopied: function(filename) {
+        this.addAsset(filename);
+        this.copyAssets();
     },
 
     copyFile: function(source, target, cb) {
@@ -520,11 +499,18 @@ var editor = {
 
         var div = document.createElement('div');
         $(div).html(filename);
-        $(div).click(this.removeAsset.bind(this, div, filename));
+        $(div).click(this.insertAsset.bind(this, filename));
+        $(div).addClass('asset');
+        $(div).attr('data-name', filename);
         $(div).appendTo($('#assets .content .list'));
     },
 
-    removeAsset: function(div, filename) {
+    insertAsset: function(filename) {
+        this.editor.insert('\'' + filename + '\'');
+        this.editor.focus();
+    },
+
+    removeAsset: function(filename, div) {
         var sure = confirm('Remove asset ' + filename + '? (File will be deleted)');
         if (!sure) return;
 
@@ -538,33 +524,6 @@ var editor = {
 
         this.modules['game.assets'].changed = true;
         this.saveChanges();
-    },
-
-    resizeDown: function(event) {
-        this.resizing = true;
-        this.resizeX = event.pageX;
-        this.resizeTarget = $(event.currentTarget).parent('.tab');
-        this.resizeWidth = this.resizeTarget.width();
-        $(document.body).css('cursor', 'col-resize');
-    },
-
-    resizeMove: function(event) {
-        if (this.resizing) {
-            var newWidth = this.resizeWidth + (event.pageX - this.resizeX);
-            if (newWidth < 100) newWidth = 100;
-            if (newWidth > 300) newWidth = 300;
-            this.resizeTarget.width(newWidth);
-
-            this.onResize();
-        }
-    },
-
-    resizeUp: function(event) {
-        if (this.resizing) {
-            this.resizing = false;
-            $(document.body).css('cursor', 'default');
-            this.editor.focus();
-        }
     },
 
     onResize: function() {
@@ -582,7 +541,7 @@ var editor = {
 
         $('#editor').width(editorWidth);
 
-        this.editor.resize();
+        if (this.editor) this.editor.resize();
     },
 
     ksort: function(obj, compare) {
@@ -630,6 +589,7 @@ var editor = {
             var div = document.createElement('div');
             $(div).addClass('module');
             $(div).addClass('ace_string');
+            $(div).attr('data-name', name);
             $(div).html(name.substr(5));
             $(div).appendTo($('#modules .content .list'));
             $(div).click(this.foldModule.bind(this, div));
@@ -666,8 +626,8 @@ var editor = {
         if (extend !== 'Class' && extend !== 'Scene') {
             return extend + ' > ' + className;
         }
-        if (extend === 'Scene') {
-            return className.replace('Scene', '');
+        if (extend === 'Scene' || className.indexOf('Scene') === 0) {
+            // return className.replace('Scene', '');
         }
         return className;
     },
@@ -675,7 +635,16 @@ var editor = {
     renameClass: function(className) {
         var newName = prompt('New class name for ' + className + ':', className);
         newName = this.stripClassName(newName);
-        if (!newName) return;
+        if (!newName) {
+            console.log('Invalid class name');
+            return;
+        }
+
+        var classObj = this.getClassObjectForClassName(newName);
+        if (classObj) {
+            console.log('Class name already used');
+            return;
+        }
 
         var module = this.getModuleObjectForClassName(className);
         module.classes[newName] = module.classes[className];
@@ -683,6 +652,14 @@ var editor = {
         delete module.classes[className];
 
         if (this.currentClass === className) this.currentClass = newName;
+
+        // Update extends for new class name
+        for (var _class in module.classes) {
+            var classObj = module.classes[_class];
+            if (classObj.extend === className) classObj.extend = newName;
+        }
+
+        this.sortClasses(module);
 
         module.changed = true;
         this.saveChanges();
@@ -697,11 +674,18 @@ var editor = {
     },
 
     changeFontSize: function(amount) {
-        this.currentFontSize += amount;
-        if (this.currentFontSize < 14) this.currentFontSize = 14;
-        if (this.currentFontSize > 23) this.currentFontSize = 23;
+        this.setFontSize(this.currentFontSize + amount);
+        this.savePreferences();
+    },
+
+    setFontSize: function(size) {
+        if (size < 14) size = 14;
+        if (size > 23) size = 23;
         
-        $('#editor').css('font-size', this.currentFontSize + 'px');
+        $('#editor').css('font-size', size + 'px');
+        $('#preferences #fontSize').val(size);
+
+        this.currentFontSize = size;
     },
 
     newModule: function() {
@@ -725,17 +709,56 @@ var editor = {
         this.newClass();
     },
 
-    newClass: function(module) {
+    duplicateClass: function(className) {
+        var classObj = this.getClassObjectForClassName(className);
+
+        className = className.replace(/\d/g, '');
+
+        var sameFound = 1;
+        for (var module in this.modules) {
+            for (var _class in this.modules[module].classes) {
+                var name = _class.replace(/\d/g, '');
+                if (name === className) sameFound++;
+            }
+        }
+
+        className = className + sameFound;
+
+        this.newClass(this.currentModule, className, classObj.session.getValue());
+    },
+
+    newClass: function(module, className, data) {
         module = module || this.currentModule;
         if (!module) return;
+
+        if (typeof className !== 'string') className = prompt('New class name:');
+        className = this.stripClassName(className);
+        if (!className) {
+            console.log('Invalid class name');
+            return;
+        }
+
+        var classExists = this.getClassObjectForClassName(className);
+        if (classExists) {
+            console.log('Class already exists');
+            return;
+        }
 
         var classObj = this.getCurrentClassObject();
         if (classObj) $(classObj.div).removeClass('current');
 
         this.currentModule = module;
-        this.currentClass = null;
 
-        this.editor.setSession(ace.createEditSession('{\n    init: function() {\n    }\n}', 'ace/mode/javascript'));
+        console.log('Saving new class ' + className);
+
+        var classObj = this.newClassObject(className, this.currentModule, data || '{\n    init: function() {\n    }\n}');
+
+        this.editClass(className, this.currentModule);
+        this.updateModuleList();
+
+        this.modules[this.currentModule].changed = true;
+        this.saveChanges();
+
         this.editor.gotoLine(2);
         this.editor.navigateLineEnd();
         this.editor.focus();
@@ -763,7 +786,10 @@ var editor = {
         return module.classes[className];
     },
 
-    extendClass: function(fromClass, toClass) {
+    extendClass: function(toClass) {
+        var fromClass = this.currentClass;
+        if (!fromClass) return;
+
         var classObj = this.getClassObjectForClassName(fromClass);
         if (!classObj) return;
         if (classObj.extend === 'Scene') return;
@@ -790,28 +816,36 @@ var editor = {
         var className = this.getClassName(classObj.name, classObj.extend);
         $(classObj.div).html(className);
 
-        // Reorder classes
+        this.sortClasses(fromModule);
+
+        fromModule.changed = true;
+        this.saveChanges();
+        this.updateModuleList();
+    },
+
+    sortClasses: function(module) {
         var classes = [];
-        for (var className in fromModule.classes) {
-            classes.push(fromModule.classes[className]);
+        for (var className in module.classes) {
+            classes.push(module.classes[className]);
         }
-        fromModule.classes = {};
+
+        module.classes = {};
         while (classes.length > 0) {
             var nextClass = classes.shift();
 
             // Check if class is extended
             if (nextClass.extend === 'Class') {
                 // Not extended
-                fromModule.classes[nextClass.name] = nextClass;
+                module.classes[nextClass.name] = nextClass;
                 continue;
             }
 
             // If extended, check if extended class already added
             var classAdded = false;
-            for (var className in fromModule.classes) {
+            for (var className in module.classes) {
                 if (nextClass.extend === className) {
                     // Already added, put class to next in list and continue
-                    fromModule.classes[nextClass.name] = nextClass;
+                    module.classes[nextClass.name] = nextClass;
                     classAdded = true;
                     continue;
                 }
@@ -821,14 +855,24 @@ var editor = {
             // Extended class not added yet, put class back to end of array
             classes.push(nextClass);
         }
+    },
 
-        fromModule.changed = true;
-        this.saveChanges();
-        this.updateModuleList();
+    insertClassToEditor: function(name) {
+        if (name.indexOf('Scene') === 0) {
+            this.editor.insert('game.system.setScene(\'' + name.replace('Scene', '') + '\');');
+        }
+        else {
+            this.editor.insert('new game.' + name + '();');
+            var curPos = this.editor.getCursorPosition();
+            this.editor.gotoLine(curPos.row + 1, curPos.column - 2);
+        }
+
+        this.editor.focus();
     },
 
     editClass: function(name, module, event) {
-        if (event && event.shiftKey && this.currentClass) return this.extendClass(this.currentClass, name);
+        if (event && event.altKey) return this.insertClassToEditor(name);
+        if (event && event.shiftKey && this.currentClass) return this.extendClass(name);
         if (this.currentClass === name && this.currentModule === module) return;
 
         var classObj = this.getCurrentClassObject();
@@ -867,7 +911,7 @@ var editor = {
         worker.send(['build', this.currentProject]);
     },
 
-    exitGame: function() {
+    disconnectAll: function() {
         this.io.emit('command', 'exitGame');
     },
 
@@ -1143,14 +1187,14 @@ var editor = {
             return;
         }
 
-        // Get ip address
+        // Get ip addresses
         var os = require('os');
         var ifaces = os.networkInterfaces();
         for (var ifname in ifaces) {
             for (var i = 0; i < ifaces[ifname].length; i++) {
                 var iface = ifaces[ifname][i];
                 if ('IPv4' !== iface.family || iface.internal !== false) continue;
-                $('#devices .content .drop').html(iface.address + ':' + this.settings.port);
+                this.ipAddresses.push(iface.address);
             }
         }
         
@@ -1164,8 +1208,6 @@ var editor = {
             res.sendStatus(200);
         });
 
-        this.snippetScript = script;
-
         app.use(require('connect-inject')({ snippet: script }));
 
         this.staticServe = this.express.static(this.currentProject);
@@ -1176,8 +1218,10 @@ var editor = {
 
         io.on('connection', function(socket){
             console.log('Device connected');
+
             socket.on('disconnect', function() {
                 console.log('Device disconnected');
+
                 for (var i = editor.devices.length - 1; i >= 0; i--) {
                     var device = editor.devices[i];
                     if (this === device.socket) {
@@ -1187,17 +1231,32 @@ var editor = {
                     }
                 }
             });
+
             socket.on('register', function(data) {
                 data.socket = this;
                 editor.registerDevice(data);
             });
         });
 
-        http.listen(this.settings.port);
-
-        console.log('Listening on port ' + this.settings.port);
-
         this.io = io;
+
+        this.restartServer(http);
+    },
+
+    restartServer: function(http) {
+        if (this.http) {
+            this.http.close();
+            this.disconnectAll();
+        }
+        if (http) this.http = http;
+        this.http.listen(this.settings.port);
+        console.log('Listening on port ' + this.settings.port);
+        
+        var text = '';
+        for (var i = 0; i < this.ipAddresses.length; i++) {
+            text += this.ipAddresses[i] + ':' + this.settings.port + '<br>';
+        }
+        $('#devices .content .drop').html(text);
     },
 
     registerDevice: function(data) {
@@ -1256,10 +1315,11 @@ var editor = {
         var classObj = {
             name: className,
             session: session,
-            extend: extend
+            extend: extend || 'Class'
         };
         session.on('change', this.onChange.bind(this, classObj));
         this.modules[module].classes[className] = classObj;
+        return classObj;
     },
 
     revertClass: function() {
@@ -1294,33 +1354,6 @@ var editor = {
             $(classObj.div).html($(classObj.div).html() + '*');
             $(classObj.div).addClass('changed');
         }
-    },
-
-    saveNewClass: function() {
-        var classValue = this.editor.getValue();
-        if (!classValue) return false;
-
-        var className = prompt('New class name for ' + this.currentModule + ':');
-        if (className) className = className.replace(/[\s\W]/g, '');
-        if (className) className = className.substr(0, 24); // Max length
-        if (!className) return false;
-        if (this.modules[this.currentModule].classes[className]) return false;
-
-        console.log('Saving new class ' + className);
-
-        this.newClassObject(className, this.currentModule, classValue);
-
-        this.currentClass = className;
-
-        this.saveCurrentState();
-
-        var classObj = this.getCurrentClassObject();
-        $(classObj.div).addClass('current');
-        var curPos = this.editor.getCursorPosition();
-        this.editor.setSession(classObj.session);
-        this.editor.gotoLine(curPos.row + 1, curPos.column);
-
-        return true;
     },
 
     saveCurrentState: function() {
@@ -1400,7 +1433,7 @@ var editor = {
 
                 if (module === 'game.assets') {
                     for (var asset in this.assets) {
-                        data += 'game.addAsset(\'' + asset + '\');\n';
+                        data += 'game.addAsset(\'' + asset + '\', \'' + this.assets[asset] + '\');\n';
                     }
                     data += '\n';
                 }
@@ -1449,7 +1482,7 @@ var editor = {
         $(this.modules[module].div).html(this.modules[module].name);
 
         if (this.io) {
-            console.log('Emit reloadModule');
+            console.log('Emit reloadModule ' + module);
             this.io.emit('command', 'reloadModule', module);
         }
     },

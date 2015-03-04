@@ -4,11 +4,6 @@
 }
 
 @font-face {
-    font-family: OpenSans;
-    src: url(../font/OpenSans-Regular.ttf);
-}
-
-@font-face {
     font-family: Asap;
     src: url(../font/Asap-Regular.ttf);
 }
@@ -36,14 +31,25 @@ body {
     overflow: hidden;
 }
 
+::-webkit-scrollbar {
+	width: 12px;  /* for vertical scrollbars */
+	height: 12px; /* for horizontal scrollbars */
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.2);
+	border-radius: 5px;
+}
+
 #menu {
 	position: relative;
 	width: 50px;
 	height: 100%;
 	float: left;
-	border-right: 2px solid rgba(0, 0, 0, 0.2);
-
-	/*background: #37373a;*/
 	border-right: 1px solid #000;
 }
 
