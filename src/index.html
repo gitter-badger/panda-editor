@@ -16,13 +16,14 @@
     <img src="img/loader.png" id="loader">
 
     <div id="menu" class="ace_gutter">
-        <div class="item" data-target="modules"><img src="img/icons/bolt.png"></div>
-        <div class="item" data-target="assets"><img src="img/icons/image.png"></div>
-        <div class="item" data-target="plugins"><img src="img/icons/plugin.png"></div>
-        <div class="item" data-target="devices"><img src="img/icons/tablet.png"></div>
-        <div class="item" data-target="project"><img src="img/icons/gear.png"></div>
-        <div class="item" data-target="deploy"><img src="img/icons/toolbox.png"></div>
-        <div class="item" data-target="preferences"><img src="img/icons/tools.png"></div>
+        <div class="item disabled" data-target="modules"><img src="img/icons/bolt.png"></div>
+        <div class="item disabled" data-target="assets"><img src="img/icons/image.png"></div>
+        <div class="item disabled" data-target="plugins"><img src="img/icons/plugin.png"></div>
+        <div class="item disabled" data-target="devices"><img src="img/icons/tablet.png"></div>
+        <div class="item disabled" data-target="project"><img src="img/icons/gear.png"></div>
+        <div class="item disabled" data-target="deploy"><img src="img/icons/toolbox.png"></div>
+        <div class="item" data-target="projects"><img src="img/icons/folder.png"></div>
+        <div class="item disabled" data-target="preferences"><img src="img/icons/tools.png"></div>
     </div>
 
     <div id="modules" class="tab">
@@ -81,6 +82,15 @@
             <button href="openBrowser">Open in browser</button>
             <button href="buildProject">Build project</button>
             <button href="updateEngine">Update engine</button>
+        </div>
+    </div>
+
+    <div id="projects" class="tab">
+        <div class="header ace_function">Projects</div>
+        <div class="content">
+            <div class="list"></div>
+            <div class="drop">Drop project folder here</div>
+            <button href="createProject">Create new project</button>
         </div>
     </div>
 

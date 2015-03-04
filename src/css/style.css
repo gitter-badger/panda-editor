@@ -76,6 +76,16 @@ body {
 	cursor: default;
 }
 
+#menu .item.disabled {
+	opacity: 0.5;
+}
+
+#menu .item.disabled:hover {
+	background: rgba(255, 255, 255, 0.3);
+	opacity: 0.5;
+	cursor: default;
+}
+
 .tab {
 	height: 100%;
 	float: left;
@@ -238,6 +248,7 @@ label {
 }
 
 #editor {
+	background: #000;
 	font-family: Menlo;
 	padding: 0;
 	border-style: none;

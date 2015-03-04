@@ -41,7 +41,8 @@ var editor = {
         // this.initEditor();
         this.initWindow();
 
-        // this.loadLastProject();
+        this.loadLastProject();
+        // this.showTab('projects');
     },
 
     initEvents: function() {
@@ -187,6 +188,8 @@ var editor = {
     },
 
     menuClick: function(event) {
+        if ($(event.currentTarget).hasClass('disabled')) return;
+
         var target = $(event.currentTarget).attr('data-target');
         this.showTab(target);
     },
@@ -323,10 +326,14 @@ var editor = {
     },
 
     openBrowser: function() {
+        if (!this.currentProject) return;
+
         this.gui.Shell.openExternal('http://localhost:' + this.settings.port + '/dev.html?' + Date.now());
     },
 
     updateEngine: function() {
+        if (!this.currentProject) return;
+
         var sure = confirm('Update engine to latest version?');
         if (!sure) return;
 
@@ -488,26 +495,45 @@ var editor = {
         this.copyAssets();
     },
 
-    addAsset: function(filename) {
+    addAsset: function(filename, id) {
         if (filename.indexOf('.') === 0) return;
         if (filename === 'Thumbs.db') return;
+        if (this.assets[filename]) return;
 
-        this.assets[filename] = filename;
+        id = id || filename;
+        this.assets[filename] = id;
         this.assetCount++;
 
         $('#assets .header').html('Assets (' + this.assetCount + ')');
 
         var div = document.createElement('div');
-        $(div).html(filename);
-        $(div).click(this.insertAsset.bind(this, filename));
+        $(div).html(id);
+        $(div).click(this.clickAsset.bind(this, filename, div));
         $(div).addClass('asset');
         $(div).attr('data-name', filename);
         $(div).appendTo($('#assets .content .list'));
     },
 
-    insertAsset: function(filename) {
-        this.editor.insert('\'' + filename + '\'');
-        this.editor.focus();
+    clickAsset: function(filename, div, event) {
+        if (event.altKey) {
+            this.editor.insert('\'' + this.assets[filename] + '\'');
+            this.editor.focus();
+            return;
+        }
+        else if (event.shiftKey) {
+            newId = filename;
+        }
+        else {
+            var newId = prompt('New id for asset ' + filename, this.assets[filename]);
+            newId = this.stripClassName(newId);
+            if (!newId) return console.log('Invalid asset id');
+        }
+
+        this.assets[filename] = newId;
+        $(div).html(newId);
+
+        this.modules['game.assets'].changed = true;
+        this.saveChanges();
     },
 
     removeAsset: function(filename, div) {
@@ -932,6 +958,7 @@ var editor = {
         if (!dir) return;
         if (dir === this.currentProject) return;
         if (this.loading) return;
+        if (!this.editor) this.initEditor();
 
         console.log('Loading project ' + dir);
 
@@ -1084,6 +1111,14 @@ var editor = {
                     continue;
                 }
                 var expName = nodes[i].expression.callee.property.name;
+                if (expName === 'addAsset') {
+                    var args = nodes[i].expression.arguments;
+                    
+                    var path = args[0].value;
+                    var id = args[1].value || path;
+
+                    this.addAsset(path, id);
+                }
                 if (expName === 'createClass' || expName === 'createScene') {
                     var args = nodes[i].expression.arguments;
                     // console.log(args[0].value);
@@ -1124,33 +1159,6 @@ var editor = {
 
         this.updateModuleList();
         
-        this.fs.readdir(this.currentProject + '/media', this.addMediaFolder.bind(this));
-    },
-
-    addMediaFolder: function(err, files) {
-        if (err) return console.log('Error reading media folder');
-
-        $('#assets .content .list').html('');
-
-        for (var i = 0; i < files.length; i++) {
-            if (files[i].indexOf('.') === 0) continue;
-            this.addAsset(files[i]);
-        }
-
-        console.log('Loading plugins');
-        this.fs.readdir(this.currentProject + '/src/plugins', this.addPluginsFolder.bind(this));
-    },
-
-    addPluginsFolder: function(err, files) {
-        $('#plugins .content .list').html('');
-
-        if (err) console.log('No plugins found');
-        else {
-            for (var i = 0; i < files.length; i++) {
-                this.addPlugin(files[i]);
-            }
-        }
-
         this.projectLoaded();
     },
 
@@ -1306,6 +1314,9 @@ var editor = {
         else {
             this.editNextClass();
         }
+
+        this.showTab('modules');
+        $('#menu .item.disabled').removeClass('disabled');
 
         this.hideLoader();
     },
@@ -1487,7 +1498,17 @@ var editor = {
         }
     },
 
-    createProject: function() {
+    openFolder: function(callback) {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.nwdirectory = true;
+        input.click();
+        input.onchange = function() {
+            callback(input.value);
+        };
+    },
+
+    createProject: function(dir) {
         if (this.loading) return;
         
         if (this.currentProject) {
@@ -1495,19 +1516,23 @@ var editor = {
             if (!sure) return;
         }
 
-        var name = prompt('Project name:');
-        if (!name) return;
-
         this.currentProject = null;
+
+        if (!dir) return this.openFolder(this.createProject.bind(this));
+
+        var name = prompt('Project name:');
+        name = this.stripClassName(name);
+        if (!name) {
+            console.log('Invalid project name');
+            return;
+        }
 
         this.showLoader();
 
         console.log('Creating new project');
 
-        var dir = '/Users/eemelikelokorpi/Sites/temp/';
-
         var worker = this.fork('js/worker.js', { execPath: './node' });
-        worker.on('message', this.projectCreated.bind(this, dir + name));
+        worker.on('message', this.projectCreated.bind(this, dir + '/' + name));
         worker.on('exit', this.projectCreated.bind(this, ''));
         worker.send(['create', dir, [name]]);
     },
