@@ -210,6 +210,10 @@ label {
 	color: #fc0;
 }
 
+#modules .module:hover {
+	background: transparent;
+}
+
 #modules .class.changed {
 	color: #f4bf75;
 }

@@ -1,6 +1,7 @@
 // TODO
 // Add/remove module
 // Asset subfolders
+// Asset id's
 
 var editor = {
     info: require('./package.json'),
@@ -23,6 +24,7 @@ var editor = {
         'audio/ogg'
     ],
     plugins: [],
+    contextMenus: {},
 
     // Default settings
     settings: {
@@ -47,8 +49,9 @@ var editor = {
         window.ondragover = this.dragover.bind(this);
         window.ondragleave = this.dragleave.bind(this);
         window.ondrop = this.filedrop.bind(this);
-        $(window).on('keydown', this.keyDown.bind(this));
-        $(window).on('keyup', this.keyUp.bind(this));
+
+        this.initContextMenu();
+        $(document).bind('contextmenu', this.showContextMenu.bind(this));
 
         this.initEditor();
         this.onResize();
@@ -67,12 +70,56 @@ var editor = {
         this.window.show();
     },
 
-    keyDown: function(event) {
-        if (event.keyCode === 16) this._shiftDown = true;
+    initContextMenu: function() {
+        var menu = new this.gui.Menu();
+        var item = new this.gui.MenuItem({ label: 'Extend', click: this.contextMenuClick.bind(this, 'extend') });
+        menu.append(item);
+        var item = new this.gui.MenuItem({ label: 'Rename', click: this.contextMenuClick.bind(this, 'rename') });
+        menu.append(item);
+        var item = new this.gui.MenuItem({ label: 'Remove', click: this.contextMenuClick.bind(this, 'remove') });
+        menu.append(item);
+        this.contextMenus.class = menu;
+
+        var menu = new this.gui.Menu();
+        var item = new this.gui.MenuItem({ label: 'Change scene', click: this.contextMenuClick.bind(this, 'changeScene') });
+        menu.append(item);
+        var item = new this.gui.MenuItem({ label: 'Set start scene', click: this.contextMenuClick.bind(this, 'setStartScene') });
+        menu.append(item);
+        var item = new this.gui.MenuItem({ label: 'Remove', click: this.contextMenuClick.bind(this, 'remove') });
+        menu.append(item);
+        this.contextMenus.scene = menu;
     },
 
-    keyUp: function(event) {
-        if (event.keyCode === 16) this._shiftDown = false;
+    contextMenuClick: function(item) {
+        if (!this.contextMenuClass) return;
+
+        if (item === 'changeScene') return this.io.emit('command', 'changeScene', this.contextMenuClass.replace('Scene', ''));
+        if (item === 'setStartScene') {
+            var sceneName = this.contextMenuClass.replace('Scene', '');
+            if (this.config.system.startScene === sceneName) return;
+            $('#projectStartScene').val(sceneName);
+            this.saveConfig(true);
+            return;
+        }
+
+        if (item === 'rename') return this.renameClass(this.contextMenuClass);
+        if (item === 'remove') return this.removeClass(this.contextMenuClass);
+
+        if (!this.currentClass) return;
+
+        if (item === 'extend') return this.extendClass(this.currentClass, this.contextMenuClass);
+    },
+
+    showContextMenu: function(event) {
+        var className = $(event.target).attr('data-name');
+        if ($(event.target).hasClass('class') && className) {
+            this.contextMenuClass = className;
+
+            if (className.indexOf('Scene') === 0) this.contextMenu = this.contextMenus.scene;
+            else this.contextMenu = this.contextMenus.class;
+
+            this.contextMenu.popup(event.originalEvent.x, event.originalEvent.y);
+        }
     },
 
     buttonClick: function(event) {
@@ -298,7 +345,7 @@ var editor = {
     },
 
     openBrowser: function() {
-        this.gui.Shell.openExternal('http://localhost:' + this.settings.port + '/dev.html');
+        this.gui.Shell.openExternal('http://localhost:' + this.settings.port + '/dev.html?' + Date.now());
     },
 
     updateEngine: function() {
@@ -601,6 +648,7 @@ var editor = {
                 $(div).addClass('class');
                 $(div).html(this.getClassName(className, classObj.extend));
                 $(div).appendTo($('#modules .content .list'));
+                $(div).attr('data-name', className);
                 $(div).click(this.editClass.bind(this, className, name));
 
                 this.modules[name].classes[className].div = div;
@@ -624,19 +672,17 @@ var editor = {
         return className;
     },
 
-    renameCurrentClass: function() {
-        if (!this.currentClass || !this.currentModule) return;
-
-        var newName = prompt('New class name for ' + this.currentClass + ':', this.currentClass);
+    renameClass: function(className) {
+        var newName = prompt('New class name for ' + className + ':', className);
         newName = this.stripClassName(newName);
         if (!newName) return;
 
-        var module = this.modules[this.currentModule];
-        module.classes[newName] = module.classes[this.currentClass];
-        delete module.classes[this.currentClass];
-
+        var module = this.getModuleObjectForClassName(className);
+        module.classes[newName] = module.classes[className];
         module.classes[newName].name = newName;
-        this.currentClass = newName;
+        delete module.classes[className];
+
+        if (this.currentClass === className) this.currentClass = newName;
 
         module.changed = true;
         this.saveChanges();
@@ -695,7 +741,7 @@ var editor = {
         this.editor.focus();
     },
 
-    getModuleObjectForClass: function(forClass) {
+    getModuleObjectForClassName: function(forClass) {
         for (var module in this.modules) {
             for (var className in this.modules[module].classes) {
                 if (className === forClass) return this.modules[module];
@@ -703,7 +749,7 @@ var editor = {
         }
     },
 
-    getModuleNameForClass: function(forClass) {
+    getModuleNameForClassName: function(forClass) {
         for (var module in this.modules) {
             for (var className in this.modules[module].classes) {
                 if (className === forClass) return module;
@@ -711,28 +757,24 @@ var editor = {
         }
     },
 
-    extendCurrentClass: function(extend) {
-        var classObj = this.getCurrentClassObject();
+    getClassObjectForClassName: function(className) {
+        var module = this.getModuleObjectForClassName(className);
+        if (!module) return;
+        return module.classes[className];
+    },
+
+    extendClass: function(fromClass, toClass) {
+        var classObj = this.getClassObjectForClassName(fromClass);
         if (!classObj) return;
-        if (extend.indexOf('Scene') === 0) {
-            var sceneName = extend.replace('Scene', '');
-            if (this.config.system.startScene === sceneName) return;
-
-            $('#projectStartScene').val(sceneName);
-            this.saveConfig(true);
-
-            this.io.emit('command', 'changeScene', sceneName);
-            return;
-        }
         if (classObj.extend === 'Scene') return;
-        if (classObj.name === extend && extend === 'Class') return;
-        if (!this.modules[this.currentModule].classes[extend]) return;
-
-        if (classObj.name === extend) extend = 'Class';
+        var fromModule = this.getModuleObjectForClassName(fromClass);
+        var toModule = this.getModuleObjectForClassName(toClass);
+        if (fromModule !== toModule) return;
+        if (fromClass === toClass) toClass = 'Class';
+        if (classObj.extend === toClass) return;
 
         // Check that class is not extending to itself
-        var module = this.modules[this.currentModule];
-        var parent = module.classes[extend];
+        var parent = fromModule.classes[toClass];
         var extendToItself = false;
         while (parent) {
             if (parent.extend === classObj.name) {
@@ -740,37 +782,36 @@ var editor = {
                 extendToItself = true;
                 break;
             }
-            parent = module.classes[parent.extend];
+            parent = fromModule.classes[parent.extend];
         }
         if (extendToItself) return;
 
-        classObj.extend = extend;
+        classObj.extend = toClass;
         var className = this.getClassName(classObj.name, classObj.extend);
         $(classObj.div).html(className);
 
         // Reorder classes
-        
         var classes = [];
-        for (var className in module.classes) {
-            classes.push(module.classes[className]);
+        for (var className in fromModule.classes) {
+            classes.push(fromModule.classes[className]);
         }
-        module.classes = {};
+        fromModule.classes = {};
         while (classes.length > 0) {
             var nextClass = classes.shift();
 
             // Check if class is extended
             if (nextClass.extend === 'Class') {
                 // Not extended
-                module.classes[nextClass.name] = nextClass;
+                fromModule.classes[nextClass.name] = nextClass;
                 continue;
             }
 
             // If extended, check if extended class already added
             var classAdded = false;
-            for (var className in module.classes) {
+            for (var className in fromModule.classes) {
                 if (nextClass.extend === className) {
                     // Already added, put class to next in list and continue
-                    module.classes[nextClass.name] = nextClass;
+                    fromModule.classes[nextClass.name] = nextClass;
                     classAdded = true;
                     continue;
                 }
@@ -781,14 +822,14 @@ var editor = {
             classes.push(nextClass);
         }
 
-        this.modules[this.currentModule].changed = true;
+        fromModule.changed = true;
         this.saveChanges();
         this.updateModuleList();
     },
 
-    editClass: function(name, module) {
-        if (this._shiftDown && this.currentClass) return this.extendCurrentClass(name);
-        if (this.currentClass === name && this.currentModule === module) return this.renameCurrentClass();
+    editClass: function(name, module, event) {
+        if (event && event.shiftKey && this.currentClass) return this.extendClass(this.currentClass, name);
+        if (this.currentClass === name && this.currentModule === module) return;
 
         var classObj = this.getCurrentClassObject();
         if (classObj) $(classObj.div).removeClass('current');
@@ -902,6 +943,7 @@ var editor = {
     },
 
     saveConfig: function(dontReload) {
+        console.log('Saving config');
         this.config.name = $('#projectName').val();
         this.config.system.width = parseInt($('#projectWidth').val());
         this.config.system.height = parseInt($('#projectHeight').val());
@@ -1296,6 +1338,18 @@ var editor = {
         var id = this.info.id + key;
         if (!global) id += this.currentProject;
         return localStorage.getItem(id);
+    },
+
+    removeClass: function(className) {
+        var sure = confirm('Remove class ' + className + '?');
+        if (!sure) return;
+
+        if (this.config.startScene === className.replace('Scene', '')) return;
+
+        var classObj = this.getClassObjectForClassName(className);
+        classObj.changed = true;
+        classObj.session.setValue('');
+        this.saveChanges();
     },
 
     saveChanges: function() {
