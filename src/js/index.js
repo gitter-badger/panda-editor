@@ -9,6 +9,9 @@
 // If rename class while other class has changed,
 // it's title changes back to normal (without *)
 
+var Class = require('./js/class.js');
+var ContextMenu = require('./js/contextmenu.js');
+
 var editor = {
     info: require('./package.json'),
     fork: require('child_process').fork,
@@ -33,6 +36,7 @@ var editor = {
     prevSettings: {},
     assetsToCopy: [],
     projects: {},
+    errorLines: [],
 
     // Default settings
     settings: {
@@ -49,7 +53,7 @@ var editor = {
         // this.initEditor();
         this.initWindow();
 
-        // this.loadLastProject();
+        this.loadLastProject();
         this.showTab('projects');
     },
 
@@ -1250,9 +1254,6 @@ var editor = {
 
                     this.newClassObject(className, name, strData, classExtend);
                 }
-                else {
-
-                }
             }
 
             this.modules[name].session = ace.createEditSession(moduleData, 'ace/mode/javascript');
@@ -1314,7 +1315,7 @@ var editor = {
         var http = require('http').Server(app);
         var io = require('socket.io')(http);
 
-        var script = this.fs.readFileSync('js/reload.html', { encoding: 'utf-8' });
+        var script = this.fs.readFileSync('reload.html', { encoding: 'utf-8' });
 
         app.post('/register', function(req, res) {
             res.sendStatus(200);
@@ -1328,31 +1329,91 @@ var editor = {
             editor.staticServe(req, res, next);
         });
 
-        io.on('connection', function(socket){
-            console.log('Device connected');
-
-            socket.on('disconnect', function() {
-                console.log('Device disconnected');
-
-                for (var i = editor.devices.length - 1; i >= 0; i--) {
-                    var device = editor.devices[i];
-                    if (this === device.socket) {
-                        editor.devices.splice(i, 1);
-                        if (device.div) editor.updateDeviceList();
-                        break;
-                    }
-                }
-            });
-
-            socket.on('register', function(data) {
-                data.socket = this;
-                editor.registerDevice(data);
-            });
-        });
+        io.on('connection', this.deviceConnected.bind(this));
 
         this.io = io;
 
         this.restartServer(http);
+    },
+
+    deviceConnected: function(socket) {
+        console.log('Device connected');
+
+        socket.on('disconnect', this.deviceDisconnected.bind(this, socket));
+        socket.on('register', this.registerDevice.bind(this, socket));
+        socket.on('errorMsg', this.onError.bind(this));
+    },
+
+    deviceDisconnected: function(socket) {
+        console.log('Device disconnected');
+
+        for (var i = this.devices.length - 1; i >= 0; i--) {
+            var device = this.devices[i];
+            if (device.socket === socket) {
+                this.devices.splice(i, 1);
+                if (device.div) this.updateDeviceList();
+                return;
+            }
+        }
+    },
+
+    onError: function(file, line, msg) {
+        var module = 'game.' + file.split('.')[0];
+
+        module = this.modules[module];
+        if (!module) return;
+
+        var lines = module.data.split(/\r?\n/);
+        var errorLine = lines[line - 1];
+
+        var errorClass;
+        var errorClassLine;
+        for (var className in module.classes) {
+            var classObj = module.classes[className];
+            // TODO What if other classes have same line???
+            var isError = classObj.session.getValue().indexOf(errorLine);
+            if (isError > -1) {
+                errorClass = classObj.name;
+                var classLines = classObj.session.getValue().split(/\r?\n/);
+                for (var i = 0; i < classLines.length; i++) {
+                    if (classLines[i].indexOf(errorLine) > -1) {
+                        errorClassLine = i + 1;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        // console.log('Error on class ' + errorClass + ' line ' + errorClassLine);
+        // console.log('Got error at ' + file + ' line ' + line + ': ' + msg);
+
+        this.highlightError(errorClass, errorClassLine);
+    },
+
+    highlightError: function(className, lineNumber) {
+        var classObj = this.getClassObjectForClassName(className);
+        if (!classObj) return;
+
+        if (classObj.errors[lineNumber]) return;
+
+        $(classObj.div).addClass('error');
+
+        var Range = ace.require('ace/range').Range;
+        var errorLine = classObj.session.addMarker(new Range(lineNumber - 1, 0, lineNumber - 1, 144), 'errorHighlight', 'fullLine');
+
+        classObj.errors[lineNumber] = errorLine;
+    },
+
+    clearErrors: function(className) {
+        var classObj = this.getClassObjectForClassName(className);
+        if (!classObj) return;
+
+        for (var errorLine in classObj.errors) {
+            classObj.session.removeMarker(classObj.errors[errorLine]);
+            delete classObj.errors[errorLine];
+        }
+
+        $(classObj.div).removeClass('error');
     },
 
     restartServer: function(http) {
@@ -1371,7 +1432,7 @@ var editor = {
         $('#devices .content .drop').html(text);
     },
 
-    registerDevice: function(data) {
+    registerDevice: function(socket, data) {
         if (!data.platform) {
             data.platform = 'Desktop';
             data.model = 'browser';
@@ -1380,6 +1441,7 @@ var editor = {
             data.platform = 'Window';
             data.model = 'Phone';
         }
+        data.socket = socket;
         this.devices.push(data);
         this.updateDeviceList();
         console.log('Registered device ' + data.platform + ' ' + data.model);
@@ -1447,7 +1509,8 @@ var editor = {
         var classObj = {
             name: className,
             session: session,
-            extend: extend || 'Class'
+            extend: extend || 'Class',
+            errors: {}
         };
         session.on('change', this.onChange.bind(this, classObj));
         this.modules[module].classes[className] = classObj;
@@ -1478,8 +1541,10 @@ var editor = {
         var hasUndo = classObj.session.getUndoManager().hasUndo();
         
         // FIXME why hasUndo is false, when inserting text?
-        if (event.data.action === 'insertText') hasUndo = true;
-        if (event.data.action === 'removeText') hasUndo = true;
+        if (event.data.action === 'insertText' || event.data.action === 'removeText') {
+            hasUndo = true;
+            this.clearErrors(classObj.name);
+        }
 
         if (hasUndo && !classObj.changed) {
             classObj.changed = true;
@@ -1538,16 +1603,8 @@ var editor = {
                 var classObj = this.modules[module].classes[className];
 
                 if (classObj.changed) {
-                    if (classObj.session.getValue() === '') {
-                        console.log('Deleting class ' + className);
-                        $(classObj.div).remove();
-                        delete this.modules[module].classes[className];
-                        needUpdate = true;
-                    }
-                    else {
-                        console.log('Saving class ' + className);
-                    }
-
+                    console.log('Saving class ' + className);
+                    this.clearErrors(className);
                     needToSave = true;
                 }
             }
@@ -1587,6 +1644,8 @@ var editor = {
                 }
 
                 data += '});\n';
+
+                this.modules[module].data = data;
 
                 console.log('Writing file ' + file);
                 this.fs.writeFile(file, data, {
@@ -1681,6 +1740,4 @@ var editor = {
     }
 };
 
-$(function() {
-    editor.init();
-});
+$(function() { editor.init(); });

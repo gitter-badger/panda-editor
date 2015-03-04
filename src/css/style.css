@@ -211,6 +211,10 @@ label {
 	padding-left: 20px;
 }
 
+#modules .class.error {
+	background: rgba(255, 0, 0, 0.3);
+}
+
 #modules .content div button {
 	display: none;
 }
@@ -260,6 +264,12 @@ label {
 	float: left;
 	overflow: hidden;
 	position: relative;
+}
+
+#editor .errorHighlight{
+  	position: absolute;
+  	z-index: 20;
+  	background-color: rgba(255, 0, 0, 0.3);
 }
 
 #loader {
