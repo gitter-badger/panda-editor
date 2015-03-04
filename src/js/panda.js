@@ -2,6 +2,12 @@
 // Add/remove module
 // Asset subfolders
 // Asset id's
+// Adding spritesheet json (copy png also)
+// Adding audio files
+
+// BUGS
+// If rename class while other class has changed,
+// it's title changes back to normal (without *)
 
 var editor = {
     info: require('./package.json'),
@@ -26,6 +32,7 @@ var editor = {
     ipAddresses: [],
     prevSettings: {},
     assetsToCopy: [],
+    projects: {},
 
     // Default settings
     settings: {
@@ -36,13 +43,14 @@ var editor = {
 
     init: function() {
         this.initPreferences();
+        this.initProjects();
         this.initEvents();
         this.initContextMenus();
         // this.initEditor();
         this.initWindow();
 
-        this.loadLastProject();
-        // this.showTab('projects');
+        // this.loadLastProject();
+        this.showTab('projects');
     },
 
     initEvents: function() {
@@ -77,6 +85,7 @@ var editor = {
         this.newContextMenu('scene');
         this.addContextMenuItem('scene', 'Change scene', 'changeScene');
         this.addContextMenuItem('scene', 'Set start scene', 'setStartScene');
+        this.addContextMenuItem('scene', 'Rename', 'renameClass');
         this.addContextMenuItem('scene', 'Remove', 'removeClass');
 
         this.newContextMenu('asset');
@@ -84,6 +93,9 @@ var editor = {
 
         this.newContextMenu('module');
         this.addContextMenuItem('module', 'New class', 'newClass');
+
+        this.newContextMenu('project');
+        this.addContextMenuItem('project', 'Remove', 'removeProject');
     },
 
     newContextMenu: function(name) {
@@ -131,9 +143,70 @@ var editor = {
     },
 
     changeScene: function(name) {
+        name = name || '';
         name = name.replace('Scene', '');
-        console.log('Emite changeScene ' + name);
+        console.log('Emit changeScene ' + name);
         this.io.emit('command', 'changeScene', name);
+    },
+
+    updateProjectInfo: function() {
+        var project = this.projects[this.currentProject];
+        if (!project) return;
+
+        project.name = this.config.name;
+        project.version = this.config.version;
+
+        this.window.title = this.info.description + ' - ' + project.name + ' ' + project.version;
+        $(project.div).html(project.name + ' ' + project.version);
+
+        this.saveProjects();
+    },
+
+    addProject: function(project) {
+        var div = document.createElement('div');
+        $(div).addClass('project');
+        $(div).html(project.name + ' ' + project.version);
+        $(div).click(this.loadProject.bind(this, project.dir));
+        $(div).attr('data-name', project.dir);
+        $(div).appendTo($('#projects .list'));
+        if (this.currentProject === project.dir) $(div).addClass('current');
+        project.div = div;
+        this.projects[project.dir] = project;
+    },
+
+    removeProject: function(dir, div) {
+        var name = $(div).html();
+        var sure = confirm('Remove project ' + name + ' from list?');
+        if (!sure) return;
+
+        delete this.projects[dir];
+        $(div).remove();
+        this.saveProjects();
+        console.log('Removed project ' + dir);
+    },
+
+    initProjects: function() {
+        var projects = JSON.parse(localStorage.getItem('projects'));
+
+        for (var i = 0; i < projects.length; i++) {
+            this.addProject(projects[i]);
+        }
+    },
+
+    resetProjects: function() {
+        localStorage.setItem('projects', null);
+    },
+
+    saveProjects: function() {
+        var projects = [];
+        for (var project in this.projects) {
+            projects.push({
+                name: this.projects[project].name,
+                dir: this.projects[project].dir,
+                version: this.projects[project].version
+            });
+        }
+        localStorage.setItem('projects', JSON.stringify(projects));
     },
 
     initPreferences: function() {
@@ -259,8 +332,13 @@ var editor = {
         });
         this.editor.commands.addCommand({
             name: 'reloadGame',
-            bindKey: { mac: 'Cmd-R', win: 'Ctrl-R' },
+            bindKey: { mac: 'Cmd-Shift-R', win: 'Ctrl-Shift-R' },
             exec: this.reloadGame.bind(this)
+        });
+        this.editor.commands.addCommand({
+            name: 'changeScene',
+            bindKey: { mac: 'Cmd-R', win: 'Ctrl-R' },
+            exec: this.changeScene.bind(this)
         });
         this.editor.commands.addCommand({
             name: 'toggleTabs',
@@ -306,7 +384,9 @@ var editor = {
         
         // Help menu
         var help = new this.gui.Menu();
-        help.append(new this.gui.MenuItem({ label: 'About' }));
+        help.append(new this.gui.MenuItem({ label: 'Report issue' }));
+        help.append(new this.gui.MenuItem({ label: 'Homepage' }));
+        help.append(new this.gui.MenuItem({ label: 'Tutorials' }));
         
         menubar.insert(new this.gui.MenuItem({ label: 'Project', submenu: project }), 1);
         menubar.append(new this.gui.MenuItem({ label: 'Help', submenu: help }));
@@ -818,7 +898,18 @@ var editor = {
 
         var classObj = this.getClassObjectForClassName(fromClass);
         if (!classObj) return;
-        if (classObj.extend === 'Scene') return;
+
+        var toClassObj = this.getClassObjectForClassName(toClass);
+        if (toClassObj.extend === 'Scene') {
+            this.changeScene(toClass);
+            return;
+        }
+
+        if (classObj.extend === 'Scene') {
+            console.log('Can not extend from Scene');
+            return;
+        }
+
         var fromModule = this.getModuleObjectForClassName(fromClass);
         var toModule = this.getModuleObjectForClassName(toClass);
         if (fromModule !== toModule) return;
@@ -860,7 +951,7 @@ var editor = {
             var nextClass = classes.shift();
 
             // Check if class is extended
-            if (nextClass.extend === 'Class') {
+            if (nextClass.extend === 'Class' || nextClass.extend === 'Scene') {
                 // Not extended
                 module.classes[nextClass.name] = nextClass;
                 continue;
@@ -954,11 +1045,16 @@ var editor = {
         this.showTab('modules');
     },
 
-    loadProject: function(dir) {
+    loadProject: function(dir, event) {
         if (!dir) return;
         if (dir === this.currentProject) return;
         if (this.loading) return;
-        if (!this.editor) this.initEditor();
+
+        if (this.currentProject) {
+            var name = $(event.target).html();
+            var sure = confirm('Load project ' + name + '? (Changes will be lost)');
+            if (!sure) return;
+        }
 
         console.log('Loading project ' + dir);
 
@@ -981,6 +1077,8 @@ var editor = {
             return console.log('Engine not found');
         }
 
+        if (!this.editor) this.initEditor();
+
         $('#engineVersion').html('Panda Engine: ' + game.version);
 
         this.showLoader();
@@ -997,6 +1095,10 @@ var editor = {
 
         this.window.title = this.info.description + ' - ' + this.config.name + ' ' + this.config.version;
 
+        // Default config
+        if (typeof this.config.system.startScene === 'undefined') this.config.system.startScene = 'Main';
+        if (typeof this.config.system.rotateScreen === 'undefined') this.config.system.rotateScreen = true;
+
         $('#projectName').val(this.config.name);
         $('#projectWidth').val(this.config.system.width);
         $('#projectHeight').val(this.config.system.height);
@@ -1004,8 +1106,6 @@ var editor = {
         $('#projectCenter').prop('checked', this.config.system.center);
         $('#projectScale').prop('checked', this.config.system.scale);
         $('#projectResize').prop('checked', this.config.system.resize);
-        if (typeof this.config.system.startScene === 'undefined') this.config.system.startScene = 'Main';
-        if (typeof this.config.system.rotateScreen === 'undefined') this.config.system.rotateScreen = true;
         $('#projectRotateScreen').prop('checked', this.config.system.rotateScreen);
         $('#projectDebug').prop('checked', this.config.debug.enabled);
 
@@ -1025,7 +1125,10 @@ var editor = {
         this.config.system.rotateScreen = $('#projectRotateScreen').is(':checked');
         this.config.debug.enabled = $('#projectDebug').is(':checked');
 
-        this.window.title = this.info.description + ' - ' + this.config.name + ' ' + this.config.version;
+        var project = this.projects[this.currentProject];
+        project.name = this.config.name;
+
+        this.updateProjectInfo();
 
         this.fs.writeFile(this.currentProject + '/src/game/config.js', 'pandaConfig = ' + JSON.stringify(this.config, null, 4) + ';', {
             encoding: 'utf-8'
@@ -1115,7 +1218,8 @@ var editor = {
                     var args = nodes[i].expression.arguments;
                     
                     var path = args[0].value;
-                    var id = args[1].value || path;
+                    var id = path;
+                    if (args[1]) id = args[1].value;
 
                     this.addAsset(path, id);
                 }
@@ -1306,6 +1410,22 @@ var editor = {
     projectLoaded: function() {
         this.initServer();
 
+        if (!this.projects[this.currentProject]) {
+            this.addProject({
+                dir: this.currentProject,
+                name: this.config.name,
+                version: this.config.version
+            });
+        }
+        else {
+            this.updateProjectInfo();
+        }
+
+        this.saveProjects();
+
+        $('#projects .project.current').removeClass('current');
+        $(this.projects[this.currentProject].div).addClass('current');
+
         var lastClass = this.getStorage('lastClass');
         var lastModule = this.getStorage('lastModule');
         if (this.modules[lastModule] && this.modules[lastModule].classes[lastClass]) {
@@ -1323,6 +1443,7 @@ var editor = {
 
     newClassObject: function(className, module, data, extend) {
         var session = ace.createEditSession(data, 'ace/mode/javascript');
+        if (className.indexOf('Scene') === 0) extend = 'Scene';
         var classObj = {
             name: className,
             session: session,
@@ -1520,10 +1641,10 @@ var editor = {
 
         if (!dir) return this.openFolder(this.createProject.bind(this));
 
-        var name = prompt('Project name:');
-        name = this.stripClassName(name);
-        if (!name) {
-            console.log('Invalid project name');
+        var folder = prompt('Project folder:');
+        folder = this.stripClassName(folder);
+        if (!folder) {
+            console.log('Invalid project folder');
             return;
         }
 
@@ -1532,17 +1653,19 @@ var editor = {
         console.log('Creating new project');
 
         var worker = this.fork('js/worker.js', { execPath: './node' });
-        worker.on('message', this.projectCreated.bind(this, dir + '/' + name));
+        worker.on('message', this.projectCreated.bind(this, dir + '/' + folder));
         worker.on('exit', this.projectCreated.bind(this, ''));
-        worker.send(['create', dir, [name]]);
+        worker.send(['create', dir, [folder]]);
     },
 
     projectCreated: function(dir, err) {
         this.hideLoader();
 
-        if (err) console.error(err);
+        if (err) {
+            console.error(err);
+        }
         else {
-            console.log('Project created at ' + dir);
+            console.log('Created project ' + dir);
             this.loadProject(dir);
         }
     },

@@ -226,6 +226,10 @@ label {
 	color: #fc0;
 }
 
+#projects .project.current {
+	color: #ac4142;
+}
+
 #modules .module:hover {
 	background: transparent;
 }
