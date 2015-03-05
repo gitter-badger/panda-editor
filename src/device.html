@@ -3,16 +3,16 @@
 var app = {
 	connected: false,
 	connectCounter: 0,
+	modulesToReload: [],
 
 	init: function() {
+		// Parse device info from url
 		var params = window.location.href.split('?')[1].split('&');
 		for (var i = 0; i < params.length; i++) {
 			var info = params[i].split('=');
 			if (info.length < 2) continue;
 			this[info[0]] = decodeURIComponent(info[1]);
 		}
-
-		this.config = JSON.parse(localStorage.getItem('config')) || {};
 
 		this.socket = io();
 		this.socket.on('connect', this.onConnect.bind(this));
@@ -75,21 +75,40 @@ var app = {
 	},
 
 	changeScene: function(scene) {
+		scene = scene || game.system.sceneName;
+
 		if (this.errorDiv) {
 			document.body.removeChild(this.errorDiv);
 			this.errorDiv = null;
 		}
+		
 		if (game.assetQueue.length > 0) {
-			var loader = new game.Loader(scene || game.system.sceneName);
+			var loader = new game.Loader(scene);
 			loader.start();
-			return;
 		}
-		game.system.setScene(scene || game.system.sceneName);
+		else {
+			game.system.setScene(scene);
+		}
 	},
 
-	reloadModule: function(module) {
+	reloadModules: function(modules) {
 		game.config.autoStart = false;
-		game.ready = this.changeScene.bind(this);
+		game.ready = this.reloadModule.bind(this);
+
+		for (var i = 0; i < modules.length; i++) {
+			this.modulesToReload.push(modules[i]);
+		}
+
+		if (this.modulesToReload.length > 0) this.reloadModule();
+	},
+
+	modulesLoaded: function() {
+		this.changeScene();
+	},
+
+	reloadModule: function() {
+		var module = this.modulesToReload.pop();
+		if (!module) return this.modulesLoaded();
 
 		// Delete module classes
 		for (var i = 0; i < game.modules[module].classes.length; i++) {
@@ -105,9 +124,9 @@ var app = {
 		var script = document.createElement('script');
 		script.type = 'text/javascript';
 		script.src = path;
-		script.onerror = function() {
-		};
 		document.getElementsByTagName('head')[0].appendChild(script);
+
+		// TODO remove previous script from head
 	}
 };
 

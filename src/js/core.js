@@ -8,8 +8,6 @@
 // BUGS
 // If rename class while other class has changed,
 // it's title changes back to normal (without *)
-'use strict';
-
 var editor = {
     info: require('./package.json'),
     fork: require('child_process').fork,
@@ -18,6 +16,7 @@ var editor = {
     express: require('express'),
     opener: require("opener"),
 
+    assetsToCopy: [],
     assetTypes: [
         'image/png',
         'image/jpeg',
@@ -28,7 +27,6 @@ var editor = {
     devices: [],
     plugins: [],
     ipAddresses: [],
-    assetsToCopy: [],
 
     init: function() {
         this.storage = new this.Storage(this);
@@ -82,6 +80,10 @@ var editor = {
 
         $('#projectStartScene').val(name);
         this.saveConfig(true);
+    },
+
+    saveConfig: function() {
+        this.project.config.save();
     },
 
     changeScene: function(name) {
@@ -168,9 +170,9 @@ var editor = {
             exec: this.createProject.bind(this)
         });
         this.editor.commands.addCommand({
-            name: 'reloadGame',
+            name: 'reloadAll',
             bindKey: { mac: 'Cmd-Shift-R', win: 'Ctrl-Shift-R' },
-            exec: this.reloadGame.bind(this)
+            exec: this.reloadAll.bind(this)
         });
         this.editor.commands.addCommand({
             name: 'changeScene',
@@ -200,12 +202,11 @@ var editor = {
         this.onResize();
     },
 
-    reloadGame: function() {
+    reloadAll: function() {
         if (!this.io) return;
 
-        for (var i = 0; i < this.devices.length; i++) {
-            $(this.devices[i].div).remove();
-        }
+        console.log('Reloaded all devices');
+        $('#devices .list').html('');
         this.devices.length = 0;
         this.io.emit('command', 'reloadGame');
     },
@@ -222,13 +223,13 @@ var editor = {
     },
 
     openBrowser: function() {
-        if (!this.currentProject) return;
+        if (!this.project.dir) return;
 
         this.gui.Shell.openExternal('http://localhost:' + this.preferences.data.port + '/dev.html?' + Date.now());
     },
 
     updateEngine: function() {
-        if (!this.currentProject) return;
+        if (!this.project.dir) return;
 
         var sure = confirm('Update engine to latest version?');
         if (!sure) return;
@@ -408,7 +409,7 @@ var editor = {
 
         delete this.assets[filename];
         $(div).remove();
-        this.fs.unlink(this.currentProject + '/media/' + filename, function(err) {
+        this.fs.unlink(this.project.dir + '/media/' + filename, function(err) {
             if (err) console.log(err);
         });
         this.assetCount--;
@@ -745,7 +746,7 @@ var editor = {
     },
 
     buildProject: function() {
-        if (!this.currentProject) return;
+        if (!this.project.dir) return;
         if (this.loading) return;
 
         var sure = confirm('Build project?');
@@ -757,7 +758,7 @@ var editor = {
         var worker = this.fork('js/worker.js', { execPath: './node' });
         worker.on('message', this.buildComplete.bind(this));
         worker.on('exit', this.buildComplete.bind(this));
-        worker.send(['build', this.currentProject]);
+        worker.send(['build', this.project.dir]);
     },
 
     disconnectAll: function() {
@@ -803,7 +804,7 @@ var editor = {
     initServer: function() {
         if (this.io) {
             console.log('Server already started');
-            this.staticServe = this.express.static(this.currentProject);
+            this.staticServe = this.express.static(this.project.dir);
             this.io.emit('command', 'reloadGame');
             return;
         }
@@ -823,7 +824,7 @@ var editor = {
         var http = require('http').Server(app);
         var io = require('socket.io')(http);
 
-        var script = this.fs.readFileSync('reload.html', { encoding: 'utf-8' });
+        var script = this.fs.readFileSync('device.html', { encoding: 'utf-8' });
 
         app.post('/register', function(req, res) {
             res.sendStatus(200);
@@ -831,7 +832,7 @@ var editor = {
 
         app.use(require('connect-inject')({ snippet: script }));
 
-        this.staticServe = this.express.static(this.currentProject);
+        this.staticServe = this.express.static(this.project.dir);
 
         app.use('/', function(req, res, next) {
             editor.staticServe(req, res, next);
@@ -962,7 +963,7 @@ var editor = {
 
         if (hasUndo && !classObj.changed) {
             classObj.changed = true;
-            $(classObj.div).html($(classObj.div).html() + '*');
+            // $(classObj.div).html($(classObj.div).html() + '*');
             $(classObj.div).addClass('changed');
         }
     },
@@ -997,12 +998,12 @@ var editor = {
     createProject: function(dir) {
         if (this.loading) return;
         
-        if (this.currentProject) {
+        if (this.project.dir) {
             var sure = confirm('Create new project? (Changes will be lost)');
             if (!sure) return;
         }
 
-        this.currentProject = null;
+        this.project.dir = null;
 
         if (!dir) return this.openFolder(this.createProject.bind(this));
 

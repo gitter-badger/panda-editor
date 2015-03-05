@@ -2,60 +2,34 @@ editor.Project = Class.extend({
 	modules: {},
 	assets: {},
 	assetCount: 0,
+	filesToWrite: [],
 
-	init: function(editor, dir, callback) {
+	init: function(editor, dir, loadCallback) {
 		this.editor = editor;
 		this.dir = dir;
-	    this.callback = callback;
+	    this.loadCallback = loadCallback;
 	    this.esprima = require('esprima');
 
 	    console.log('Loading project ' + dir);
 
-	    console.log('Loading config');
-	    delete global.require.cache[dir + '/src/game/config.js'];
-	    try {
-	        require(dir + '/src/game/config.js');   
-	    }
-	    catch(e) {
-	        return callback('Config not found');
-	    }
+	    this.config = new editor.Config(this.editor, this);
 
 	    console.log('Loading engine');
 	    try {
 	        var game = require(dir + '/src/engine/core.js');
 	    }
 	    catch(e) {
-	        return callback('Engine not found');
+	        return loadCallback('Engine not found');
 	    }
 
 	    $('#engineVersion').html('Panda Engine: ' + game.version);
 
 	    this.editor.currentClass = this.editor.currentModule = null;
-	    this.editor.currentProject = dir;
 
 	    this.modules['game.main'] = {};
-	    
-	    this.config = global.pandaConfig;
-	    this.config.system = this.config.system || {};
-	    this.config.debug = this.config.debug || {};
 
-	    this.editor.window.title = this.editor.info.description + ' - ' + this.config.name + ' ' + this.config.version;
+	    this.editor.window.title = this.editor.info.description + ' - ' + this.config.data.name + ' ' + this.config.data.version;
 
-	    // Default config
-	    if (typeof this.config.system.startScene === 'undefined') this.config.system.startScene = 'Main';
-	    if (typeof this.config.system.rotateScreen === 'undefined') this.config.system.rotateScreen = true;
-
-	    $('#projectName').val(this.config.name);
-	    $('#projectWidth').val(this.config.system.width);
-	    $('#projectHeight').val(this.config.system.height);
-	    $('#projectStartScene').val(this.config.system.startScene);
-	    $('#projectCenter').prop('checked', this.config.system.center);
-	    $('#projectScale').prop('checked', this.config.system.scale);
-	    $('#projectResize').prop('checked', this.config.system.resize);
-	    $('#projectRotateScreen').prop('checked', this.config.system.rotateScreen);
-	    $('#projectDebug').prop('checked', this.config.debug.enabled);
-
-	    console.log(this.dir, this.modules);
 	    console.log('Loading modules');
 	    this.loadModuleData();
 	},
@@ -97,7 +71,7 @@ editor.Project = Class.extend({
 	},
 
 	readModuleData: function(name, err, data) {
-	    if (err) return this.callback('Module ' + name + ' not found');
+	    if (err) return this.loadCallback('Module ' + name + ' not found');
 
 	    var requires = 0;
 
@@ -204,13 +178,13 @@ editor.Project = Class.extend({
 	},
 
 	loaded: function() {
-	    this.callback();
+	    this.loadCallback();
 
 	    this.editor.storage.set('lastProject', this.dir);
 	    
 	    var lastClass = this.editor.storage.get('lastClass', true);
 	    var lastModule = this.editor.storage.get('lastModule', true);
-	    
+
 	    if (this.modules[lastModule] && this.modules[lastModule].classes[lastClass]) {
 	        this.editor.editClass(lastClass, lastModule);
 	    }
@@ -222,8 +196,7 @@ editor.Project = Class.extend({
 	save: function() {
 	    console.log('Saving changes');
 
-	    var needUpdate = false;
-
+	    this.filesToWrite.length = 0;
 	    for (var module in this.modules) {
 	        var needToSave = false;
 
@@ -276,19 +249,51 @@ editor.Project = Class.extend({
 	            data += '});\n';
 
 	            this.modules[module].data = data;
+	            this.modules[module].changed = true;
 
-	            console.log('Writing file ' + file);
-	            this.editor.fs.writeFile(file, data, {
-	                encoding: 'utf-8'
-	            }, this.moduleSaved.bind(this, module));
+	            this.filesToWrite.push({
+	            	file: file,
+	            	data: data,
+	            	module: module
+	            });
 	        }
 	    }
 
-	    if (needUpdate) this.editor.updateModuleList();
+	    this.writeFiles();
+	},
+
+	writeFiles: function() {
+		var fileObj = this.filesToWrite.pop();
+		if (!fileObj) return this.saved();
+
+		console.log('Writing file ' + fileObj.file);
+		this.editor.fs.writeFile(fileObj.file, fileObj.data, {
+		    encoding: 'utf-8'
+		}, this.moduleSaved.bind(this, fileObj.module));
+	},
+
+	saved: function() {
+		console.log('Project saved');
+
+		var changedModules = [];
+		for (module in this.modules) {
+			if (this.modules[module].changed) {
+				this.modules[module].changed = false;
+				changedModules.push(module);
+			}
+		}
+
+		if (this.editor.io) {
+		    console.log('Emit reloadModules ' + changedModules);
+		    this.editor.io.emit('command', 'reloadModules', changedModules);
+		}
 	},
 
 	moduleSaved: function(module, err) {
-	    if (err) return alert('Error saving module ' + module);
+	    if (err) {
+	    	console.error(err);
+	    	return this.writeFiles();
+	    }
 	    
 	    for (var className in this.modules[module].classes) {
 	        var classObj = this.modules[module].classes[className];
@@ -298,14 +303,7 @@ editor.Project = Class.extend({
 	        $(classObj.div).html(this.editor.getClassName(className, classObj.extend));
 	    }
 
-	    this.modules[module].changed = false;
-	    $(this.modules[module].div).removeClass('changed');
-	    $(this.modules[module].div).html(this.modules[module].name);
-
-	    if (this.editor.io) {
-	        console.log('Emit reloadModule ' + module);
-	        this.editor.io.emit('command', 'reloadModule', module);
-	    }
+	    this.writeFiles();
 	},
 
 	updateModuleList: function() {
@@ -348,34 +346,12 @@ editor.Project = Class.extend({
 	            if (this.editor.currentClass === className) {
 	                $(div).addClass('current');
 	            }
+	            if (classObj.changed) {
+	            	$(div).addClass('changed');
+	            }
 	        }
 	    }
 
 	    $('#modules .header').html('Classes (' + classCount + ')');
-	},
-
-	saveConfig: function(dontReload) {
-	    console.log('Saving config');
-	    this.config.name = $('#projectName').val();
-	    this.config.system.width = parseInt($('#projectWidth').val());
-	    this.config.system.height = parseInt($('#projectHeight').val());
-	    this.config.system.startScene = $('#projectStartScene').val();
-	    this.config.system.center = $('#projectCenter').is(':checked');
-	    this.config.system.scale = $('#projectScale').is(':checked');
-	    this.config.system.resize = $('#projectResize').is(':checked');
-	    this.config.system.rotateScreen = $('#projectRotateScreen').is(':checked');
-	    this.config.debug.enabled = $('#projectDebug').is(':checked');
-
-	    this.editor.projects.update();
-
-	    this.editor.fs.writeFile(this.dir + '/src/game/config.js', 'pandaConfig = ' + JSON.stringify(this.config, null, 4) + ';', {
-	        encoding: 'utf-8'
-	    }, function(err) {
-	        if (err) console.log('Error writing config');
-	    });
-
-	    if (!dontReload) this.editor.io.emit('command', 'reloadGame');
-
-	    this.updateModuleList();
 	}
 });

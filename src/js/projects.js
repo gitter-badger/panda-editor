@@ -76,8 +76,8 @@ editor.Projects = Class.extend({
 		if (!this.project[this.current.dir]) {
 		    this.add({
 		        dir: this.current.dir,
-		        name: this.current.config.name,
-		        version: this.current.config.version
+		        name: this.current.config.data.name,
+		        version: this.current.config.data.version
 		    });
 		}
 		else {
@@ -106,8 +106,8 @@ editor.Projects = Class.extend({
 	    var project = this.project[this.current.dir];
 	    if (!project) return;
 
-	    project.name = this.current.config.name;
-	    project.version = this.current.config.version;
+	    project.name = this.current.config.data.name;
+	    project.version = this.current.config.data.version;
 
 	    this.editor.window.title = this.editor.info.description + ' - ' + project.name + ' ' + project.version;
 	    $(project.div).html(project.name + ' ' + project.version);
