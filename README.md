@@ -18,3 +18,4 @@
 - High performance code editor based on [Ace](http://ace.c9.io/)
 - No need for separate web server
 - Easily add assets to your game with drag & drop
+- Retina support

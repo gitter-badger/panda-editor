@@ -7,23 +7,35 @@
     <link rel="stylesheet" type="text/css" href="css/style.css">
     <link rel="stylesheet" type="text/css" href="js/ace/theme-sunburst.css">
 
-    <script type="text/javascript" src="js/jquery-2.1.3.min.js"></script>
+    <script type="text/javascript" src="js/lib/jquery-2.1.3.min.js"></script>
+    <script type="text/javascript" src="js/lib/class.js"></script>
     <script type="text/javascript" src="js/ace/ace.js"></script>
     <script type="text/javascript" src="js/ace/ext-language_tools.js"></script>
-    <script type="text/javascript" src="js/index.js"></script>
+
+    <script type="text/javascript" src="js/core.js"></script>
+    <script type="text/javascript" src="js/contextmenu.js"></script>
+    <script type="text/javascript" src="js/preferences.js"></script>
+    <script type="text/javascript" src="js/projects.js"></script>
+    <script type="text/javascript" src="js/project.js"></script>
+    <script type="text/javascript" src="js/menu.js"></script>
+    <script type="text/javascript" src="js/error.js"></script>
+    <script type="text/javascript" src="js/storage.js"></script>
+    <script type="text/javascript">
+        $(function() { editor.init(); });
+    </script>
 </head>
 <body>
-    <img src="img/loader.png" id="loader">
+    <img src="img/icons/loading.png" srcset="img/icons@2x/loading.png 2x" id="loader">
 
     <div id="menu" class="ace_gutter">
-        <div class="item disabled" data-target="modules"><img src="img/icons/bolt.png"></div>
-        <div class="item disabled" data-target="assets"><img src="img/icons/image.png"></div>
-        <div class="item disabled" data-target="plugins"><img src="img/icons/plugin.png"></div>
-        <div class="item disabled" data-target="devices"><img src="img/icons/tablet.png"></div>
-        <div class="item disabled" data-target="project"><img src="img/icons/gear.png"></div>
-        <div class="item disabled" data-target="deploy"><img src="img/icons/toolbox.png"></div>
-        <div class="item" data-target="projects"><img src="img/icons/folder.png"></div>
-        <div class="item disabled" data-target="preferences"><img src="img/icons/tools.png"></div>
+        <div class="item disabled" data-target="modules"><img src="img/icons/bolt.png" srcset="img/icons@2x/bolt.png 2x"></div>
+        <div class="item disabled" data-target="assets"><img src="img/icons/image.png" srcset="img/icons@2x/image.png 2x"></div>
+        <div class="item disabled" data-target="plugins"><img src="img/icons/plugin.png" srcset="img/icons@2x/plugin.png 2x"></div>
+        <div class="item disabled" data-target="devices"><img src="img/icons/tablet.png" srcset="img/icons@2x/tablet.png 2x"></div>
+        <div class="item disabled" data-target="project"><img src="img/icons/gear.png" srcset="img/icons@2x/gear.png 2x"></div>
+        <div class="item disabled" data-target="deploy"><img src="img/icons/toolbox.png" srcset="img/icons@2x/toolbox.png 2x"></div>
+        <div class="item" data-target="projects"><img src="img/icons/folder.png" srcset="img/icons@2x/folder.png 2x"></div>
+        <div class="item" data-target="preferences"><img src="img/icons/tools.png" srcset="img/icons@2x/tools.png 2x"></div>
     </div>
 
     <div id="modules" class="tab">
@@ -98,7 +110,7 @@
         <div class="header ace_function">Preferences</div>
         <div class="content">
             <div class="list"></div>
-            <button href="applyPreferences">Save changes</button>
+            <button href="savePreferences">Save changes</button>
         </div>
     </div>
 

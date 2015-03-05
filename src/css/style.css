@@ -18,7 +18,7 @@ html, body {
 
 body {
 	margin: 0;
-	font-family: Asap;
+	font-family: Asap, Arial;
 	font-size: 14px;
 	color: #fff;
 	background: #000;
@@ -29,6 +29,10 @@ body {
     -ms-user-select: none;
     user-select: none;
     overflow: hidden;
+}
+
+img {
+	pointer-events: none;
 }
 
 ::-webkit-scrollbar {
@@ -71,9 +75,17 @@ body {
 	cursor: pointer;
 }
 
+#menu .item:hover img {
+	opacity: 0.6;
+}
+
 #menu .item.current {
 	background: rgba(255, 255, 255, 0.1);
 	cursor: default;
+}
+
+#menu .item.current img {
+	opacity: 1;
 }
 
 #menu .item.disabled {
@@ -84,6 +96,10 @@ body {
 	background: rgba(255, 255, 255, 0.3);
 	opacity: 0.5;
 	cursor: default;
+}
+
+#menu .item.disabled:hover img {
+	opacity: 1;
 }
 
 .tab {
@@ -140,6 +156,7 @@ button:hover {
 	cursor: pointer;
 	background: rgba(255, 255, 255, 0.2);
 	border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+	color: #bbb;
 }
 
 button:active {
@@ -149,6 +166,7 @@ button:active {
 
 .drop {
 	margin-top: 10px;
+	margin-bottom: 10px;
 	color: rgba(255, 255, 255, 0.3);
 	text-align: center;
 	border: 2px dashed rgba(255, 255, 255, 0.3);

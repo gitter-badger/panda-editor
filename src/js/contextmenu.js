@@ -1,6 +1,4 @@
-var Class = require('./class.js');
-
-var ContextMenu = Class.extend({
+editor.ContextMenu = Class.extend({
 	menus: {},
 
 	init: function(editor) {
@@ -27,6 +25,8 @@ var ContextMenu = Class.extend({
 		this.addMenuItem('module', 'New class', 'newClass');
 
 		this.createMenu('project');
+		this.addMenuItem('project', 'Load', 'loadProject');
+		this.addMenuItem('project', 'Open folder', 'openProjectFolder');
 		this.addMenuItem('project', 'Remove', 'removeProject');
 	},
 
@@ -56,5 +56,3 @@ var ContextMenu = Class.extend({
 	    if (this.menus[targetMenu]) this.menus[targetMenu].popup(event.originalEvent.x, event.originalEvent.y);
 	}
 });
-
-module.exports = exports = ContextMenu;

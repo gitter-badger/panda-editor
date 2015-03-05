@@ -5,9 +5,9 @@
   "description": "Panda Editor",
   "main": "index.html",
   "window": {
-    "width": 980,
-    "height": 520,
-    "min_width": 740,
+    "width": 882,
+    "height": 468,
+    "min_width": 882,
     "min_height": 468,
     "resizable": true,
     "show": false

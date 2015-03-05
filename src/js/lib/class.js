@@ -6,6 +6,30 @@
 (function(){
     var initializing = false, fnTest = /xyz/.test(function(){xyz;}) ? /\bparent\b/ : /.*/;
  
+    var copy = function(object) {
+        var l, c, i;
+        if (
+            !object || typeof object !== 'object' ||
+            object instanceof HTMLElement
+        ) {
+            return object;
+        }
+        else if (object instanceof Array) {
+            c = [];
+            for (i = 0, l = object.length; i < l; i++) {
+                c[i] = copy(object[i]);
+            }
+            return c;
+        }
+        else {
+            c = {};
+            for (i in object) {
+                c[i] = copy(object[i]);
+            }
+            return c;
+        }
+    };
+
     // The base Class implementation (does nothing)
     this.Class = function(){};
  
@@ -46,8 +70,15 @@
         // The dummy class constructor
         function Class() {
             // All construction is actually done in the init method
-            if ( !initializing && this.init )
-                this.init.apply(this, arguments);
+            if (!initializing) {
+                for (var p in this) {
+                    if (typeof this[p] === 'object') {
+                        this[p] = copy(this[p]);
+                    }
+                }
+
+                if (this.init) this.init.apply(this, arguments);
+            }
         }
      
         // Populate our constructed prototype object
@@ -62,5 +93,3 @@
         return Class;
     };
 })();
-
-module.exports = exports = Class;
