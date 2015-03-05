@@ -6,7 +6,7 @@ editor.Menu = Class.extend({
 	    console.log('Initializing menu');
 
 	    var menubar = new this.gui.Menu({ type: 'menubar' });
-	    menubar.createMacBuiltin(this.editor.info.description);
+	    if (menubar.createMacBuiltin) menubar.createMacBuiltin(this.editor.info.description);
 
 	    // Project menu
 	    var project = new this.gui.Menu();
@@ -21,7 +21,9 @@ editor.Menu = Class.extend({
 	    help.append(new this.gui.MenuItem({ label: 'Homepage' }));
 	    help.append(new this.gui.MenuItem({ label: 'Tutorials' }));
 	    
-	    menubar.insert(new this.gui.MenuItem({ label: 'Project', submenu: project }), 1);
+	    var cmd = 'append';
+	    if (menubar.createMacBuiltin) cmd = 'insert'
+	    menubar[cmd](new this.gui.MenuItem({ label: 'Project', submenu: project }), 1);
 	    menubar.append(new this.gui.MenuItem({ label: 'Help', submenu: help }));
 
 	    this.editor.window.menu = menubar;

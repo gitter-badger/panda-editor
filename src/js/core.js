@@ -36,7 +36,7 @@ var editor = {
         this.contextMenu = new this.ContextMenu(this);
         this.errorHandler = new this.ErrorHandler(this);
         this.initWindow();
-        this.menu = new this.Menu(this);
+        // this.menu = new this.Menu(this);
 
         // this.loadLastProject();
         this.showTab('projects');
@@ -755,7 +755,9 @@ var editor = {
         this.showLoader();
         console.log('Building project');
 
-        var worker = this.fork('js/worker.js', { execPath: './node' });
+        var execPath = 'node';
+        if (process.platform.indexOf('win') !== -1) execPath += '.exe';
+        var worker = this.fork('js/worker.js', { execPath: execPath });
         worker.on('message', this.buildComplete.bind(this));
         worker.on('exit', this.buildComplete.bind(this));
         worker.send(['build', this.project.dir]);
@@ -998,12 +1000,10 @@ var editor = {
     createProject: function(dir) {
         if (this.loading) return;
         
-        if (this.project.dir) {
+        if (this.project) {
             var sure = confirm('Create new project? (Changes will be lost)');
             if (!sure) return;
         }
-
-        this.project.dir = null;
 
         if (!dir) return this.openFolder(this.createProject.bind(this));
 
@@ -1018,7 +1018,9 @@ var editor = {
 
         console.log('Creating new project');
 
-        var worker = this.fork('js/worker.js', { execPath: './node' });
+        var execPath = 'node';
+        if (process.platform.indexOf('win') !== -1) execPath += '.exe';
+        var worker = this.fork('js/worker.js', { execPath: execPath });
         worker.on('message', this.projectCreated.bind(this, dir + '/' + folder));
         worker.on('exit', this.projectCreated.bind(this, ''));
         worker.send(['create', dir, [folder]]);
