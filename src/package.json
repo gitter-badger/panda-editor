@@ -10,7 +10,8 @@
     "min_width": 882,
     "min_height": 468,
     "resizable": true,
-    "show": false
+    "show": false,
+    "icon": "./res/icons/panda.ico"
   },
   "dependencies": {
     "pandajs": "latest"
