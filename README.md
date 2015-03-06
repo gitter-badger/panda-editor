@@ -32,3 +32,9 @@
 
 - [Panda.js forum](http://www.html5gamedevs.com/forum/19-pandajs/)
 - [Panda Editor chat](https://gitter.im/ekelokorpi/panda.js-engine)
+
+## License
+
+Panda Editor is released under the [MIT License](http://opensource.org/licenses/MIT).
+
+Financed by [Yleisradio](http://en.wikipedia.org/wiki/Yle).
