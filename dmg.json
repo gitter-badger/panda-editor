@@ -1,0 +1,10 @@
+{
+    "title": "Panda Editor",
+    "icon": "./res/icons/panda.icns",
+    "background": "./res/backgrounds/bg.png",
+    "icon-size": 80, 
+    "contents": [
+        { "x": 448, "y": 344, "type": "link", "path": "/Applications" },
+        { "x": 192, "y": 344, "type": "file", "path": "./build/Panda Editor/osx64/Panda Editor.app" }
+    ]
+}
