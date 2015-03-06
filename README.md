@@ -9,7 +9,7 @@
 
 ## Screenshots
 
-![Screenshot1](res/screenshots/editor1.png)
+![Screenshot1](https://raw.githubusercontent.com/ekelokorpi/panda.js-editor/master/res/screenshots/screenshot1.png)
 
 ## Features
 
