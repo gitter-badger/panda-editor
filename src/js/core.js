@@ -1,20 +1,16 @@
 // TODO
 // Add/remove module
 // Asset subfolders
-// Asset id's
 // Adding spritesheet json (copy png also)
 // Adding audio files
 
-// BUGS
-// If rename class while other class has changed,
-// it's title changes back to normal (without *)
 var editor = {
     info: require('./package.json'),
     fork: require('child_process').fork,
     gui: require('nw.gui'),
     fs: require('fs'),
     express: require('express'),
-    opener: require("opener"),
+    opener: require('opener'),
 
     assetsToCopy: [],
     assetTypes: [
@@ -29,6 +25,7 @@ var editor = {
     ipAddresses: [],
 
     init: function() {
+        console.warn('Panda Editor ' + this.info.version);
         this.storage = new this.Storage(this);
         this.preferences = new this.Preferences(this);
         this.projects = new this.Projects(this);
@@ -36,7 +33,7 @@ var editor = {
         this.contextMenu = new this.ContextMenu(this);
         this.errorHandler = new this.ErrorHandler(this);
         this.initWindow();
-        // this.menu = new this.Menu(this);
+        this.menu = new this.Menu(this);
 
         // this.loadLastProject();
         this.showTab('projects');
@@ -329,7 +326,6 @@ var editor = {
 
             for (var i = 0; i < event.dataTransfer.files.length; i++) {
                 var file = event.dataTransfer.files[i];
-                // console.log(file.type);
                 if (this.assetTypes.indexOf(file.type) !== -1) {
                     this.assetsToCopy.push(file);
                 }
@@ -393,7 +389,7 @@ var editor = {
         else {
             var newId = prompt('New id for asset ' + filename, this.project.assets[filename]);
             newId = this.stripClassName(newId);
-            if (!newId) return console.log('Invalid asset id');
+            if (!newId) return console.error('Invalid asset id');
         }
 
         this.project.assets[filename] = newId;
@@ -410,7 +406,7 @@ var editor = {
         delete this.assets[filename];
         $(div).remove();
         this.fs.unlink(this.project.dir + '/media/' + filename, function(err) {
-            if (err) console.log(err);
+            if (err) console.error(err);
         });
         this.assetCount--;
         $('#assets .header').html('Assets (' + this.assetCount + ')');
@@ -437,7 +433,7 @@ var editor = {
         if (this.editor) this.editor.resize();
     },
 
-    ksort: function(obj, compare) {
+    ksort: function(obj) {
         if (!obj || typeof obj !== 'object') return false;
 
         var keys = [], result = {}, i;
@@ -445,7 +441,7 @@ var editor = {
             keys.push(i);
         }
         
-        keys.sort(compare);
+        keys.sort();
         for (i = 0; i < keys.length; i++) {
             result[keys[i]] = obj[keys[i]];
         }
@@ -475,13 +471,13 @@ var editor = {
         var newName = prompt('New class name for ' + className + ':', className);
         newName = this.stripClassName(newName);
         if (!newName) {
-            console.log('Invalid class name');
+            console.error('Invalid class name');
             return;
         }
 
         var classObj = this.getClassObjectForClassName(newName);
         if (classObj) {
-            console.log('Class name already used');
+            console.error('Class name already used');
             return;
         }
 
@@ -573,13 +569,13 @@ var editor = {
         if (typeof className !== 'string') className = prompt('New class name:');
         className = this.stripClassName(className);
         if (!className) {
-            console.log('Invalid class name');
+            console.error('Invalid class name');
             return;
         }
 
         var classExists = this.getClassObjectForClassName(className);
         if (classExists) {
-            console.log('Class already exists');
+            console.error('Class already exists');
             return;
         }
 
@@ -639,7 +635,7 @@ var editor = {
         }
 
         if (classObj.extend === 'Scene') {
-            console.log('Can not extend from Scene');
+            console.error('Can not extend from Scene');
             return;
         }
 
@@ -654,7 +650,7 @@ var editor = {
         var extendToItself = false;
         while (parent) {
             if (parent.extend === classObj.name) {
-                console.log('Class extending to itself');
+                console.error('Can not extend to itself');
                 extendToItself = true;
                 break;
             }
@@ -805,7 +801,7 @@ var editor = {
 
     initServer: function() {
         if (this.io) {
-            console.log('Server already started');
+            console.log('Updating server');
             this.staticServe = this.express.static(this.project.dir);
             this.io.emit('command', 'reloadGame');
             return;
@@ -1010,7 +1006,7 @@ var editor = {
         var folder = prompt('Project folder:');
         folder = this.stripClassName(folder);
         if (!folder) {
-            console.log('Invalid project folder');
+            console.error('Invalid project folder');
             return;
         }
 

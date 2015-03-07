@@ -31,7 +31,7 @@
 ## Support
 
 - [Panda.js forum](http://www.html5gamedevs.com/forum/19-pandajs/)
-- [Panda Editor chat](https://gitter.im/ekelokorpi/panda.js-engine)
+- [Panda Editor chat](https://gitter.im/ekelokorpi/panda.js-editor)
 
 ## License
 
