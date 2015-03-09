@@ -52,13 +52,9 @@ editor.Projects = Class.extend({
 		    if (!sure) return;
 		}
 
-		$('#editor').hide();
-		$('.tab').hide();
-		$('#menu .item.current').removeClass('current');
-		$('#menu .item').addClass('disabled');
 		$('#assets .content .list').html('');
 
-		editor.showLoader();
+		editor.showLoader(true);
 		this.current = new editor.Project(dir, this.loaded.bind(this));
 	},
 

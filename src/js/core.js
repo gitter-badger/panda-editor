@@ -65,13 +65,12 @@ var editor = {
         name = name.replace('Scene', '');
         name = this.stripClassName(name);
         if (!name) return;
-        if (this.project.config.system.startScene === name) return;
+        if (this.project.config.data.system.startScene === name) {
+            console.error('Scene is already start scene');
+            return;
+        }
 
         $('#projectStartScene').val(name);
-        this.saveConfig();
-    },
-
-    saveConfig: function() {
         this.project.config.save();
     },
 
@@ -260,7 +259,7 @@ var editor = {
     },
 
     editNextClass: function() {
-        if (!this.currentModule || !this.currentClass) {
+        if (!this.currentModule) {
             this.currentModule = 'game.main';
         }
 
@@ -493,6 +492,7 @@ var editor = {
         console.log('Saving new class ' + className);
 
         var classObj = this.newClassObject(className, this.currentModule, data || '{\n    init: function() {\n    }\n}');
+        this.project.modules[this.currentModule].classes[className] = classObj;
 
         this.editClass(className, this.currentModule);
         this.project.updateModuleList();
@@ -748,12 +748,16 @@ var editor = {
         var sure = confirm('Remove class ' + className + '?');
         if (!sure) return;
 
-        if (this.config.startScene === className.replace('Scene', '')) return;
+        if (this.project.config.startScene === className.replace('Scene', '')) {
+            return console.error('Can not remove start scene');
+        }
 
         var classObj = this.getClassObjectForClassName(className);
         classObj.changed = true;
         classObj.session.setValue('');
+        this.editPrevClass();
         this.saveChanges();
+        this.project.updateModuleList();
     },
 
     openFolder: function(callback) {
@@ -783,13 +787,11 @@ var editor = {
             return;
         }
 
-        this.showLoader();
+        this.showLoader(true);
 
         console.log('Creating new project');
 
-        var execPath = 'node';
-        if (process.platform.indexOf('win') !== -1) execPath += '.exe';
-        var worker = this.fork('js/worker.js', { execPath: execPath });
+        var worker = this.child_process.fork('js/worker.js');
         worker.on('message', this.projectCreated.bind(this, dir + '/' + folder));
         worker.on('exit', this.projectCreated.bind(this, ''));
         worker.send(['create', dir, [folder]]);
@@ -811,9 +813,16 @@ var editor = {
         this.projects.load(dir);
     },
 
-    showLoader: function() {
+    showLoader: function(hideAll) {
         this.loading = true;
         $('#loader').show();
+
+        if (hideAll) {
+            $('#editor').hide();
+            $('.tab').hide();
+            $('#menu .item.current').removeClass('current');
+            $('#menu .item').addClass('disabled');
+        }
     },
 
     hideLoader: function() {

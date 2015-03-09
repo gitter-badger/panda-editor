@@ -28,6 +28,7 @@ editor.ErrorHandler = Class.extend({
 	    }
 	    // console.log('Error on class ' + errorClass + ' line ' + errorClassLine);
 	    // console.log('Got error at ' + file + ' line ' + line + ': ' + msg);
+	    console.error(file + ':' + line + ' ' + msg);
 
 	    this.highlight(errorClass, errorClassLine);
 	},

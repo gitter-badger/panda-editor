@@ -57,7 +57,7 @@ editor.Config = Class.extend({
 
 	    if (!dontReload) editor.server.io.emit('command', 'reloadGame');
 
-	    this.project.updateInfo();
+	    editor.projects.updateInfo();
 	    this.project.updateModuleList();
 	}
 });

@@ -173,6 +173,13 @@ editor.Project = Class.extend({
 	    }
 	},
 
+	saveAll: function() {
+		for (var module in this.modules) {
+			this.modules[module].changed = true;
+		}
+		this.save();
+	},
+
 	save: function() {
 	    console.log('Saving changes');
 
@@ -186,20 +193,28 @@ editor.Project = Class.extend({
 	            var classObj = this.modules[module].classes[className];
 
 	            if (classObj.changed) {
-	                console.log('Saving class ' + className);
 	                editor.errorHandler.clear(className);
 	                needToSave = true;
-	            }
+
+	                var value = classObj.session.getValue();
+	                if (value === '') {
+	                	console.log('Removing class ' + className);
+	                	delete this.modules[module].classes[className];
+	                }
+	                else {
+	                	console.log('Saving class ' + className);
+	                }
+ 	            }
 	        }
 
 	        if (needToSave) {
 	            console.log('Saving module ' + module);
 	            var file = this.dir + '/src/' + module.replace(/\./g, '/') + '.js';
 
-	            var data = 'game.module(\'' + module + '\')\n';
+	            var data = 'game.module(\n    \'' + module + '\'\n)\n';
 	            if (this.modules[module].requires.length > 0) {
-	                var requires = this.modules[module].requires.join('\', \'');
-	                data += '.require(\'' + requires + '\')\n';
+	                var requires = this.modules[module].requires.join('\',\n    \'');
+	                data += '.require(\n    \'' + requires + '\'\n)\n';
 	            }
 	            data += '.body(function() {\n\n';
 
@@ -212,6 +227,7 @@ editor.Project = Class.extend({
 
 	            for (var className in this.modules[module].classes) {
 	                var classObj = this.modules[module].classes[className];
+
 	                var funcName = 'createClass';
 	                var strClassName = className;
 	                if (className.indexOf('Scene') === 0) {
@@ -295,7 +311,7 @@ editor.Project = Class.extend({
 	    var classCount = 0;
 	    for (var name in this.modules) {
 	        if (name === 'game.assets') continue;
-	        if (name === 'game.main') continue;
+	        // if (name === 'game.main') continue;
 	        var div = document.createElement('div');
 	        $(div).addClass('module');
 	        $(div).addClass('ace_string');

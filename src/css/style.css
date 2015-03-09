@@ -290,6 +290,10 @@ label {
   	background-color: rgba(255, 0, 0, 0.3);
 }
 
+#editor .ace_gutter {
+	background: #000;
+}
+
 #loader {
 	position: absolute;
 	left: 9px;
