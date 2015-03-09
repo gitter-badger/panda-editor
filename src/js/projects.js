@@ -2,10 +2,8 @@ editor.Projects = Class.extend({
 	project: {},
 	current: {},
 
-	init: function(editor) {
-		this.editor = editor;
-
-	    var projects = JSON.parse(this.editor.storage.get('projects')) || [];
+	init: function() {
+	    var projects = JSON.parse(editor.storage.get('projects')) || [];
 	    for (var i = 0; i < projects.length; i++) {
 	        this.add(projects[i]);
 	    }
@@ -24,7 +22,7 @@ editor.Projects = Class.extend({
 	},
 
 	reset: function() {
-	    this.editor.storage.remove('projects');
+	    editor.storage.remove('projects');
 	},
 
 	save: function() {
@@ -37,16 +35,16 @@ editor.Projects = Class.extend({
 	            version: projObj.version
 	        });
 	    }
-	    this.editor.storage.set('projects', JSON.stringify(projects));
+	    editor.storage.set('projects', JSON.stringify(projects));
 	},
 
 	loadLast: function() {
-	    var lastProject = this.editor.storage.get('lastProject');
+	    var lastProject = editor.storage.get('lastProject');
 	    if (lastProject) this.load(lastProject);
 	},
 
 	load: function(dir) {
-		if (this.editor.loading) return;
+		if (editor.loading) return;
 		if (this.current.dir === dir) return;
 
 		if (this.current.dir) {
@@ -60,18 +58,18 @@ editor.Projects = Class.extend({
 		$('#menu .item').addClass('disabled');
 		$('#assets .content .list').html('');
 
-		this.editor.showLoader();
-		this.current = new this.editor.Project(this.editor, dir, this.loaded.bind(this));
+		editor.showLoader();
+		this.current = new editor.Project(dir, this.loaded.bind(this));
 	},
 
 	loaded: function(error) {
-		this.editor.hideLoader();
+		editor.hideLoader();
 
 		$('#editor').show();
 
 		if (error) return console.log(error);
 		
-		this.editor.onProjectLoaded();
+		editor.onProjectLoaded();
 
 		if (!this.project[this.current.dir]) {
 		    this.add({
@@ -81,7 +79,7 @@ editor.Projects = Class.extend({
 		    });
 		}
 		else {
-		    this.update();
+		    this.updateInfo();
 		}
 
 		$('#projects .project.current').removeClass('current');
@@ -89,6 +87,15 @@ editor.Projects = Class.extend({
 		$('#menu .item.disabled').removeClass('disabled');
 
 		this.save();
+	},
+
+	updateInfo: function() {
+		var curProject = this.project[this.current.dir];
+		curProject.name = this.current.config.data.name;
+		curProject.version = this.current.config.data.version;
+
+		editor.window.title = editor.info.description + ' - ' + curProject.name + ' ' + curProject.version;
+		$(curProject.div).html(curProject.name + ' ' + curProject.version);
 	},
 
 	remove: function(dir, div) {
@@ -100,16 +107,5 @@ editor.Projects = Class.extend({
 	    $(div).remove();
 	    console.log('Removed project ' + dir);
 	    this.save();
-	},
-
-	update: function() {
-	    var project = this.project[this.current.dir];
-	    if (!project) return;
-
-	    project.name = this.current.config.data.name;
-	    project.version = this.current.config.data.version;
-
-	    this.editor.window.title = this.editor.info.description + ' - ' + project.name + ' ' + project.version;
-	    $(project.div).html(project.name + ' ' + project.version);
 	}
 });

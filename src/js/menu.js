@@ -1,32 +1,31 @@
 editor.Menu = Class.extend({
-	init: function(editor) {
-		this.editor = editor;
-		this.gui = editor.gui;
+	init: function() {
+		if (process.platform !== 'darwin') return;
 
 	    console.log('Initializing menu');
 
-	    var menubar = new this.gui.Menu({ type: 'menubar' });
+	    var menubar = new editor.gui.Menu({ type: 'menubar' });
 	    if (!menubar.createMacBuiltin) return;
-	    menubar.createMacBuiltin(this.editor.info.description);
+	    menubar.createMacBuiltin(editor.info.description);
 
 	    // // Project menu
-	    // var project = new this.gui.Menu();
-	    // project.append(new this.gui.MenuItem({ label: 'Create new project', click: this.editor.createProject.bind(this.editor) }));
-	    // project.append(new this.gui.MenuItem({ label: 'Open in browser', click: this.editor.openBrowser.bind(this.editor) }));
-	    // project.append(new this.gui.MenuItem({ label: 'Build project', click: this.editor.buildProject.bind(this.editor) }));
-	    // project.append(new this.gui.MenuItem({ label: 'Update engine', click: this.editor.updateEngine.bind(this.editor) }));
+	    // var project = new editor.gui.Menu();
+	    // project.append(new editor.gui.MenuItem({ label: 'Create new project', click: editor.createProject.bind(editor) }));
+	    // project.append(new editor.gui.MenuItem({ label: 'Open in browser', click: editor.openBrowser.bind(editor) }));
+	    // project.append(new editor.gui.MenuItem({ label: 'Build project', click: editor.buildProject.bind(editor) }));
+	    // project.append(new editor.gui.MenuItem({ label: 'Update engine', click: editor.updateEngine.bind(editor) }));
 	    
 	    // // Help menu
-	    // var help = new this.gui.Menu();
-	    // help.append(new this.gui.MenuItem({ label: 'Report issue' }));
-	    // help.append(new this.gui.MenuItem({ label: 'Homepage' }));
-	    // help.append(new this.gui.MenuItem({ label: 'Tutorials' }));
+	    // var help = new editor.gui.Menu();
+	    // help.append(new editor.gui.MenuItem({ label: 'Report issue' }));
+	    // help.append(new editor.gui.MenuItem({ label: 'Homepage' }));
+	    // help.append(new editor.gui.MenuItem({ label: 'Tutorials' }));
 	    
 	    // var cmd = 'append';
 	    // if (menubar.createMacBuiltin) cmd = 'insert'
-	    // menubar[cmd](new this.gui.MenuItem({ label: 'Project', submenu: project }), 1);
-	    // menubar.append(new this.gui.MenuItem({ label: 'Help', submenu: help }));
+	    // menubar[cmd](new editor.gui.MenuItem({ label: 'Project', submenu: project }), 1);
+	    // menubar.append(new editor.gui.MenuItem({ label: 'Help', submenu: help }));
 
-	    this.editor.window.menu = menubar;
+	    editor.window.menu = menubar;
 	}
 });

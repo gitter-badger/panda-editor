@@ -1,6 +1,5 @@
 editor.Config = Class.extend({
-	init: function(editor, project) {
-		this.editor = editor;
+	init: function(project) {
 		this.project = project;
 
 		console.log('Loading config');
@@ -10,10 +9,10 @@ editor.Config = Class.extend({
 		delete global.require.cache[configFile];
 
 		try {
-		    require(configFile);   
+		    require(configFile);
 		}
 		catch(e) {
-		    return console.error('Config file not found');
+		    return console.error('File not found: ' + configFile);
 		}
 
 		this.data = global.pandaConfig;
@@ -50,16 +49,15 @@ editor.Config = Class.extend({
 	    this.data.system.rotateScreen = $('#projectRotateScreen').is(':checked');
 	    this.data.debug.enabled = $('#projectDebug').is(':checked');
 
-	    this.editor.projects.update();
-
-	    this.editor.fs.writeFile(this.project.dir + '/src/game/config.js', 'pandaConfig = ' + JSON.stringify(this.data, null, 4) + ';', {
+	    editor.fs.writeFile(this.project.dir + '/src/game/config.js', 'pandaConfig = ' + JSON.stringify(this.data, null, 4) + ';', {
 	        encoding: 'utf-8'
 	    }, function(err) {
 	        if (err) console.log('Error writing config');
 	    });
 
-	    if (!dontReload) this.editor.io.emit('command', 'reloadGame');
+	    if (!dontReload) editor.server.io.emit('command', 'reloadGame');
 
+	    this.project.updateInfo();
 	    this.project.updateModuleList();
 	}
 });

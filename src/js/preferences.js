@@ -1,16 +1,13 @@
 editor.Preferences = Class.extend({
-	// Default
 	data: {
 	    fontSize: 16,
 	    port: 3000,
 	    theme: 'sunburst'
 	},
 
-	init: function(editor) {
-		this.editor = editor;
-
+	init: function() {
 	    // Load saved preferences
-	    var savedSettings = JSON.parse(this.editor.storage.get('preferences'));
+	    var savedSettings = JSON.parse(editor.storage.get('preferences'));
 	    for (var name in savedSettings) {
 	        this.data[name] = savedSettings[name];
 	    }
@@ -37,13 +34,13 @@ editor.Preferences = Class.extend({
 	},
 
 	apply: function() {
-	    if (this.editor.editor) this.editor.editor.setTheme('ace/theme/' + this.data.theme);
+	    if (editor.editor) editor.editor.setTheme('ace/theme/' + this.data.theme);
 	    document.body.className = 'ace-' + this.data.theme.replace(/\_/g, '-');
 
-	    this.editor.setFontSize(parseInt(this.data.fontSize));
+	    editor.setFontSize(parseInt(this.data.fontSize));
 
-	    if (this.prevData.port !== this.data.port && this.editor.http) {
-	    	this.editor.restartServer();
+	    if (this.prevData.port !== this.data.port && editor.http) {
+	    	editor.restartServer();
 	    }
 	},
 
@@ -58,10 +55,10 @@ editor.Preferences = Class.extend({
 	        settings[id] = value;
 	    });
 	    this.data = settings;
-	    this.editor.storage.set('preferences', JSON.stringify(this.data));
+	    editor.storage.set('preferences', JSON.stringify(this.data));
 	},
 
 	reset: function() {
-	    this.editor.storage.set('preferences', null);
+	    editor.storage.set('preferences', null);
 	}
 });

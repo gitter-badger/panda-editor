@@ -1,12 +1,8 @@
 editor.ErrorHandler = Class.extend({
-	init: function(editor) {
-		this.editor = editor;
-	},
-
 	receive: function(file, line, msg) {
 	    var module = 'game.' + file.split('.')[0];
 
-	    module = this.editor.project.modules[module];
+	    module = editor.project.modules[module];
 	    if (!module) return;
 
 	    var lines = module.data.split(/\r?\n/);
@@ -37,7 +33,7 @@ editor.ErrorHandler = Class.extend({
 	},
 
 	highlight: function(className, lineNumber) {
-	    var classObj = this.editor.getClassObjectForClassName(className);
+	    var classObj = editor.getClassObjectForClassName(className);
 	    if (!classObj) return;
 
 	    if (classObj.errors[lineNumber]) return;
@@ -51,7 +47,7 @@ editor.ErrorHandler = Class.extend({
 	},
 
 	clear: function(className) {
-	    var classObj = this.editor.getClassObjectForClassName(className);
+	    var classObj = editor.getClassObjectForClassName(className);
 	    if (!classObj) return;
 
 	    for (var errorLine in classObj.errors) {

@@ -1,9 +1,7 @@
 editor.ContextMenu = Class.extend({
 	menus: {},
 
-	init: function(editor) {
-		this.editor = editor;
-
+	init: function() {
 		$(document).bind('contextmenu', this.showMenu.bind(this));
 
 		this.createMenu('class');
@@ -31,17 +29,17 @@ editor.ContextMenu = Class.extend({
 	},
 
 	createMenu: function(name) {
-	    this.menus[name] = new this.editor.gui.Menu();
+	    this.menus[name] = new editor.gui.Menu();
 	},
 
 	addMenuItem: function(menu, label, command) {
-	    var item = new this.editor.gui.MenuItem({ label: label, click: this.menuClick.bind(this, command) });
+	    var item = new editor.gui.MenuItem({ label: label, click: this.menuClick.bind(this, command) });
 	    this.menus[menu].append(item);
 	},
 
 	menuClick: function(command) {
-	    if (typeof this.editor[command] !== 'function') return;
-	    this.editor[command](this.targetName, this.targetDiv);
+	    if (typeof editor[command] !== 'function') return;
+	    editor[command](this.targetName, this.targetDiv);
 	},
 
 	showMenu: function(event) {

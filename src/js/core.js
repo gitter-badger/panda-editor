@@ -6,34 +6,24 @@
 
 var editor = {
     info: require('./package.json'),
-    fork: require('child_process').fork,
+    child_process: require('child_process'),
     gui: require('nw.gui'),
     fs: require('fs'),
-    express: require('express'),
     opener: require('opener'),
-
-    assetsToCopy: [],
-    assetTypes: [
-        'image/png',
-        'image/jpeg',
-        'application/json',
-        'audio/x-m4a',
-        'audio/ogg'
-    ],
-    devices: [],
     plugins: [],
-    ipAddresses: [],
 
     init: function() {
         console.warn('Panda Editor ' + this.info.version);
-        this.storage = new this.Storage(this);
-        this.preferences = new this.Preferences(this);
-        this.projects = new this.Projects(this);
+
+        this.storage = new this.Storage();
+        this.preferences = new this.Preferences();
+        this.projects = new this.Projects();
         this.initEvents();
-        this.contextMenu = new this.ContextMenu(this);
-        this.errorHandler = new this.ErrorHandler(this);
+        this.contextMenu = new this.ContextMenu();
+        this.errorHandler = new this.ErrorHandler();
+        this.assets = new this.Assets();
         this.initWindow();
-        this.menu = new this.Menu(this);
+        this.menu = new this.Menu();
 
         // this.loadLastProject();
         this.showTab('projects');
@@ -73,10 +63,12 @@ var editor = {
 
     setStartScene: function(name) {
         name = name.replace('Scene', '');
-        if (this.config.system.startScene === name) return;
+        name = this.stripClassName(name);
+        if (!name) return;
+        if (this.project.config.system.startScene === name) return;
 
         $('#projectStartScene').val(name);
-        this.saveConfig(true);
+        this.saveConfig();
     },
 
     saveConfig: function() {
@@ -86,8 +78,8 @@ var editor = {
     changeScene: function(name) {
         name = name || '';
         name = name.replace('Scene', '');
-        console.log('Emit changeScene ' + name);
-        this.io.emit('command', 'changeScene', name);
+        name = this.stripClassName(name);
+        this.server.emit('changeScene', name);
     },
 
     onProjectLoaded: function() {
@@ -205,7 +197,7 @@ var editor = {
         console.log('Reloaded all devices');
         $('#devices .list').html('');
         this.devices.length = 0;
-        this.io.emit('command', 'reloadGame');
+        this.server.emit('reloadGame');
     },
 
     showTab: function(tab) {
@@ -220,13 +212,12 @@ var editor = {
     },
 
     openBrowser: function() {
-        if (!this.project.dir) return;
-
+        if (!this.project) return;
         this.gui.Shell.openExternal('http://localhost:' + this.preferences.data.port + '/dev.html?' + Date.now());
     },
 
     updateEngine: function() {
-        if (!this.project.dir) return;
+        if (!this.project) return;
 
         var sure = confirm('Update engine to latest version?');
         if (!sure) return;
@@ -322,97 +313,8 @@ var editor = {
             this.projects.load(path);
         }
         else {
-            this.assetsToCopy.length = 0;
-
-            for (var i = 0; i < event.dataTransfer.files.length; i++) {
-                var file = event.dataTransfer.files[i];
-                if (this.assetTypes.indexOf(file.type) !== -1) {
-                    this.assetsToCopy.push(file);
-                }
-            }
-
-            if (this.assetsToCopy.length > 0) this.copyAssets();
+            this.assets.copy(event.dataTransfer.files);
         }
-    },
-
-    copyAssets: function() {
-        var file = this.assetsToCopy.pop();
-        if (!file) {
-            this.project.modules['game.assets'].changed = true;
-            this.saveChanges();
-            return;
-        }
-
-        console.log('Copying asset ' + file.path);
-        this.copyFile(file.path, this.project.dir + '/media/' + file.name, this.assetCopied.bind(this, file.name));
-    },
-
-    copyFile: function(source, target, cb) {
-        var cbCalled = false;
-
-        var rd = this.fs.createReadStream(source);
-        rd.on('error', function(err) {
-            done(err);
-        });
-        var wr = this.fs.createWriteStream(target);
-        wr.on('error', function(err) {
-            done(err);
-        });
-        wr.on('close', function(ex) {
-            done();
-        });
-        rd.pipe(wr);
-
-        function done(err) {
-            if (!cbCalled) {
-                cb(err);
-                cbCalled = true;
-            }
-        }
-    },
-
-    assetCopied: function(filename, err) {
-        if (err) return console.log('Error copying asset');
-        this.project.addAsset(filename);
-        this.copyAssets();
-    },
-
-    clickAsset: function(filename, div, event) {
-        if (event.altKey) {
-            this.editor.insert('\'' + this.assets[filename] + '\'');
-            this.editor.focus();
-            return;
-        }
-        else if (event.shiftKey) {
-            newId = filename;
-        }
-        else {
-            var newId = prompt('New id for asset ' + filename, this.project.assets[filename]);
-            newId = this.stripClassName(newId);
-            if (!newId) return console.error('Invalid asset id');
-        }
-
-        this.project.assets[filename] = newId;
-        $(div).html(newId);
-
-        this.project.modules['game.assets'].changed = true;
-        this.saveChanges();
-    },
-
-    removeAsset: function(filename, div) {
-        var sure = confirm('Remove asset ' + filename + '? (File will be deleted)');
-        if (!sure) return;
-
-        delete this.assets[filename];
-        $(div).remove();
-        this.fs.unlink(this.project.dir + '/media/' + filename, function(err) {
-            if (err) console.error(err);
-        });
-        this.assetCount--;
-        $('#assets .header').html('Assets (' + this.assetCount + ')');
-
-        this.project.modules['game.assets'].changed = true;
-        this.saveChanges();
     },
 
     onResize: function() {
@@ -458,6 +360,10 @@ var editor = {
             $(div).nextUntil('div.module').hide();
             $(div).addClass('folded');
         }
+    },
+
+    removeAsset: function(filename, div) {
+        this.assets.remove(filename, div);
     },
 
     getClassName: function(className, extend) {
@@ -751,16 +657,10 @@ var editor = {
         this.showLoader();
         console.log('Building project');
 
-        var execPath = 'node';
-        if (process.platform.indexOf('win') !== -1) execPath += '.exe';
-        var worker = this.fork('js/worker.js', { execPath: execPath });
+        var worker = this.child_process.fork('js/worker.js');
         worker.on('message', this.buildComplete.bind(this));
         worker.on('exit', this.buildComplete.bind(this));
         worker.send(['build', this.project.dir]);
-    },
-
-    disconnectAll: function() {
-        this.io.emit('command', 'exitGame');
     },
 
     buildComplete: function(err) {
@@ -800,120 +700,8 @@ var editor = {
     },
 
     initServer: function() {
-        if (this.io) {
-            console.log('Updating server');
-            this.staticServe = this.express.static(this.project.dir);
-            this.io.emit('command', 'reloadGame');
-            return;
-        }
-
-        // Get ip addresses
-        var os = require('os');
-        var ifaces = os.networkInterfaces();
-        for (var ifname in ifaces) {
-            for (var i = 0; i < ifaces[ifname].length; i++) {
-                var iface = ifaces[ifname][i];
-                if ('IPv4' !== iface.family || iface.internal !== false) continue;
-                this.ipAddresses.push(iface.address);
-            }
-        }
-        
-        var app = this.express();
-        var http = require('http').Server(app);
-        var io = require('socket.io')(http);
-
-        var script = this.fs.readFileSync('device.html', { encoding: 'utf-8' });
-
-        app.post('/register', function(req, res) {
-            res.sendStatus(200);
-        });
-
-        app.use(require('connect-inject')({ snippet: script }));
-
-        this.staticServe = this.express.static(this.project.dir);
-
-        app.use('/', function(req, res, next) {
-            editor.staticServe(req, res, next);
-        });
-
-        io.on('connection', this.deviceConnected.bind(this));
-
-        this.io = io;
-
-        this.restartServer(http);
-    },
-
-    deviceConnected: function(socket) {
-        console.log('Device connected');
-
-        socket.on('disconnect', this.deviceDisconnected.bind(this, socket));
-        socket.on('register', this.registerDevice.bind(this, socket));
-        socket.on('errorMsg', this.errorHandler.receive.bind(this.errorHandler));
-    },
-
-    deviceDisconnected: function(socket) {
-        for (var i = this.devices.length - 1; i >= 0; i--) {
-            var device = this.devices[i];
-            if (device.socket === socket) {
-                console.log(device.model + ' disconnected');
-                this.devices.splice(i, 1);
-                if (device.div) this.updateDeviceList();
-                return;
-            }
-        }
-    },
-
-    restartServer: function(http) {
-        if (this.http) {
-            this.http.close();
-            this.disconnectAll();
-        }
-        if (http) this.http = http;
-        this.http.listen(this.preferences.data.port);
-        console.log('Listening on port ' + this.preferences.data.port);
-        
-        var text = '';
-        for (var i = 0; i < this.ipAddresses.length; i++) {
-            text += this.ipAddresses[i] + ':' + this.preferences.data.port + '<br>';
-        }
-        $('#devices .content .drop').html(text);
-    },
-
-    registerDevice: function(socket, data) {
-        if (!data.platform) {
-            data.platform = 'Desktop';
-            data.model = 'browser';
-        }
-        if (data.platform === 'Win32NT') {
-            data.platform = 'Window';
-            data.model = 'Phone';
-        }
-        data.socket = socket;
-        this.devices.push(data);
-        this.updateDeviceList();
-        console.log('Registered device ' + data.platform + ' ' + data.model);
-    },
-
-    updateDeviceList: function() {
-        $('#devices .header').html('Devices (' + this.devices.length + ')');
-        
-        $('#devices .content .list').html('');
-        for (var i = 0; i < this.devices.length; i++) {
-            var device = this.devices[i];
-            var div = document.createElement('div');
-            $(div).addClass('device');
-            $(div).html(device.platform + ' ' + device.model);
-            $(div).appendTo($('#devices .content .list'));
-            $(div).click(this.reloadDevice.bind(this, device));
-            device.div = div;
-        }
-        this.onResize();
-    },
-
-    reloadDevice: function(device) {
-        $(device.div).remove();
-        device.div = null;
-        device.socket.emit('command', 'reloadGame');
+        if (this.server) this.server.update();
+        else this.server = new this.Server(this);
     },
 
     newClassObject: function(className, module, data, extend) {
@@ -928,20 +716,6 @@ var editor = {
         session.on('change', this.onChange.bind(this, classObj));
 
         return classObj;
-    },
-
-    revertClass: function() {
-        var classObj = this.getCurrentClassObject();
-        if (!classObj) return;
-
-        var sure = confirm('Revert class data?');
-        if (!sure) return;
-
-        classObj.data = classObj.savedData;
-        classObj.changed = false;
-        this.editor.doc.clearHistory();
-        this.editor.setValue(classObj.data);
-        $(classObj.div).html(this.currentClass);
     },
 
     getCurrentClassObject: function() {
@@ -961,7 +735,6 @@ var editor = {
 
         if (hasUndo && !classObj.changed) {
             classObj.changed = true;
-            // $(classObj.div).html($(classObj.div).html() + '*');
             $(classObj.div).addClass('changed');
         }
     },

@@ -4,15 +4,14 @@ editor.Project = Class.extend({
 	assetCount: 0,
 	filesToWrite: [],
 
-	init: function(editor, dir, loadCallback) {
-		this.editor = editor;
+	init: function(dir, loadCallback) {
 		this.dir = dir;
 	    this.loadCallback = loadCallback;
 	    this.esprima = require('esprima');
 
 	    console.log('Loading project ' + dir);
 
-	    this.config = new editor.Config(this.editor, this);
+	    this.config = new editor.Config(this);
 
 	    console.log('Loading engine');
 	    try {
@@ -24,33 +23,14 @@ editor.Project = Class.extend({
 
 	    $('#engineVersion').html('Panda Engine: ' + game.version);
 
-	    this.editor.currentClass = this.editor.currentModule = null;
+	    editor.currentClass = editor.currentModule = null;
 
 	    this.modules['game.main'] = {};
 
-	    this.editor.window.title = this.editor.info.description + ' - ' + this.config.data.name + ' ' + this.config.data.version;
+	    editor.window.title = editor.info.description + ' - ' + this.config.data.name + ' ' + this.config.data.version;
 
 	    console.log('Loading modules');
 	    this.loadModuleData();
-	},
-
-	addAsset: function(filename, id) {
-	    if (filename.indexOf('.') === 0) return;
-	    if (filename === 'Thumbs.db') return;
-	    if (this.assets[filename]) return;
-
-	    id = id || filename;
-	    this.assets[filename] = id;
-	    this.assetCount++;
-
-	    $('#assets .header').html('Assets (' + this.assetCount + ')');
-
-	    var div = document.createElement('div');
-	    $(div).html(id);
-	    $(div).click(this.editor.clickAsset.bind(this.editor, filename, div));
-	    $(div).addClass('asset');
-	    $(div).attr('data-name', filename);
-	    $(div).appendTo($('#assets .content .list'));
 	},
 
 	loadModuleData: function() {
@@ -60,7 +40,7 @@ editor.Project = Class.extend({
 	        var file = this.dir + '/src/' + name.replace(/\./g, '/') + '.js';
 	        console.log('Reading file ' + file);
 
-	        this.editor.fs.readFile(file, {
+	        editor.fs.readFile(file, {
 	            encoding: 'utf-8'
 	        }, this.readModuleData.bind(this, name));
 	        return;
@@ -135,7 +115,7 @@ editor.Project = Class.extend({
 	                var id = path;
 	                if (args[1]) id = args[1].value;
 
-	                this.addAsset(path, id);
+	                editor.assets.add(path, id);
 	            }
 	            if (expName === 'createClass' || expName === 'createScene') {
 	                var args = nodes[i].expression.arguments;
@@ -162,7 +142,7 @@ editor.Project = Class.extend({
 	                    classExtend = 'Scene';
 	                }
 
-	                var classObj = this.editor.newClassObject(className, name, strData, classExtend);
+	                var classObj = editor.newClassObject(className, name, strData, classExtend);
 	                this.modules[name].classes[className] = classObj;
 	            }
 	        }
@@ -180,16 +160,16 @@ editor.Project = Class.extend({
 	loaded: function() {
 	    this.loadCallback();
 
-	    this.editor.storage.set('lastProject', this.dir);
+	    editor.storage.set('lastProject', this.dir);
 	    
-	    var lastClass = this.editor.storage.get('lastClass', true);
-	    var lastModule = this.editor.storage.get('lastModule', true);
+	    var lastClass = editor.storage.get('lastClass', true);
+	    var lastModule = editor.storage.get('lastModule', true);
 
 	    if (this.modules[lastModule] && this.modules[lastModule].classes[lastClass]) {
-	        this.editor.editClass(lastClass, lastModule);
+	        editor.editClass(lastClass, lastModule);
 	    }
 	    else {
-	        this.editor.editNextClass();
+	        editor.editNextClass();
 	    }
 	},
 
@@ -207,7 +187,7 @@ editor.Project = Class.extend({
 
 	            if (classObj.changed) {
 	                console.log('Saving class ' + className);
-	                this.editor.errorHandler.clear(className);
+	                editor.errorHandler.clear(className);
 	                needToSave = true;
 	            }
 	        }
@@ -224,8 +204,8 @@ editor.Project = Class.extend({
 	            data += '.body(function() {\n\n';
 
 	            if (module === 'game.assets') {
-	                for (var asset in this.assets) {
-	                    data += 'game.addAsset(\'' + asset + '\', \'' + this.assets[asset] + '\');\n';
+	                for (var asset in editor.assets.assets) {
+	                    data += 'game.addAsset(\'' + asset + '\', \'' + editor.assets.assets[asset] + '\');\n';
 	                }
 	                data += '\n';
 	            }
@@ -267,7 +247,7 @@ editor.Project = Class.extend({
 		if (!fileObj) return this.saved();
 
 		console.log('Writing file ' + fileObj.file);
-		this.editor.fs.writeFile(fileObj.file, fileObj.data, {
+		editor.fs.writeFile(fileObj.file, fileObj.data, {
 		    encoding: 'utf-8'
 		}, this.moduleSaved.bind(this, fileObj.module));
 	},
@@ -283,9 +263,9 @@ editor.Project = Class.extend({
 			}
 		}
 
-		if (this.editor.io) {
+		if (editor.server) {
 		    console.log('Emit reloadModules ' + changedModules);
-		    this.editor.io.emit('command', 'reloadModules', changedModules);
+		    editor.server.io.emit('command', 'reloadModules', changedModules);
 		}
 	},
 
@@ -300,7 +280,7 @@ editor.Project = Class.extend({
 	        classObj.changed = false;
 	        classObj.savedData = classObj.data;
 	        $(classObj.div).removeClass('changed');
-	        $(classObj.div).html(this.editor.getClassName(className, classObj.extend));
+	        $(classObj.div).html(editor.getClassName(className, classObj.extend));
 	    }
 
 	    this.writeFiles();
@@ -308,7 +288,7 @@ editor.Project = Class.extend({
 
 	updateModuleList: function() {
 	    // Sort modules
-	    this.modules = this.editor.ksort(this.modules);
+	    this.modules = editor.ksort(this.modules);
 
 	    $('#modules .content .list').html('');
 
@@ -322,13 +302,13 @@ editor.Project = Class.extend({
 	        $(div).attr('data-name', name);
 	        $(div).html(name.substr(5));
 	        $(div).appendTo($('#modules .content .list'));
-	        $(div).click(this.editor.foldModule.bind(this.editor, div));
+	        $(div).click(editor.foldModule.bind(editor, div));
 
 	        this.modules[name].div = div;
 
 	        var button = document.createElement('button');
 	        $(button).html('+');
-	        $(button).click(this.editor.newClass.bind(this.editor, name));
+	        $(button).click(editor.newClass.bind(editor, name));
 	        $(button).appendTo(div);
 
 	        for (var className in this.modules[name].classes) {
@@ -336,14 +316,14 @@ editor.Project = Class.extend({
 	            var classObj = this.modules[name].classes[className];
 	            var div = document.createElement('div');
 	            $(div).addClass('class');
-	            $(div).html(this.editor.getClassName(className, classObj.extend));
+	            $(div).html(editor.getClassName(className, classObj.extend));
 	            $(div).appendTo($('#modules .content .list'));
 	            $(div).attr('data-name', className);
-	            $(div).click(this.editor.editClass.bind(this.editor, className, name));
+	            $(div).click(editor.editClass.bind(editor, className, name));
 
 	            this.modules[name].classes[className].div = div;
 
-	            if (this.editor.currentClass === className) {
+	            if (editor.currentClass === className) {
 	                $(div).addClass('current');
 	            }
 	            if (classObj.changed) {
