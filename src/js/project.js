@@ -11,6 +11,9 @@ editor.Project = Class.extend({
 
 	    console.log('Loading project ' + dir);
 
+	    var folder = dir.split('/');
+	    this.folder = folder[folder.length - 1];
+
 	    this.config = new editor.Config(this);
 
 	    console.log('Loading engine');

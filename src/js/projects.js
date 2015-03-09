@@ -45,9 +45,12 @@ editor.Projects = Class.extend({
 
 	load: function(dir) {
 		if (editor.loading) return;
-		if (this.current.dir === dir) return;
 
 		if (this.current.dir) {
+			if (this.current.dir === dir) {
+				console.error('Project already loaded');
+				return;
+			}
 		    var sure = confirm('Load new project? (Current changes will be lost)');
 		    if (!sure) return;
 		}
@@ -63,7 +66,7 @@ editor.Projects = Class.extend({
 
 		$('#editor').show();
 
-		if (error) return console.log(error);
+		if (error) return console.error(error);
 		
 		editor.onProjectLoaded();
 

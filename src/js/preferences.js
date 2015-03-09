@@ -2,7 +2,8 @@ editor.Preferences = Class.extend({
 	data: {
 	    fontSize: 16,
 	    port: 3000,
-	    theme: 'sunburst'
+	    theme: 'sunburst',
+	    develop: 0
 	},
 
 	init: function() {

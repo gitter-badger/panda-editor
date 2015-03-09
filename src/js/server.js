@@ -124,7 +124,7 @@ editor.Server = Class.extend({
 
 	update: function() {
 		console.log('Updating server');
-		this.staticServe = this.express.static(this.project.dir);
+		this.staticServe = this.express.static(editor.project.dir);
 		this.io.emit('command', 'reloadGame');
 	}
 });

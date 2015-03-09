@@ -24,6 +24,8 @@ editor.Config = Class.extend({
 		// Default config
 		if (typeof this.data.system.startScene === 'undefined') this.data.system.startScene = 'Main';
 		if (typeof this.data.system.rotateScreen === 'undefined') this.data.system.rotateScreen = true;
+		if (typeof this.data.name === 'undefined') this.data.name = this.project.folder;
+		if (typeof this.data.version === 'undefined') this.data.version = '0.0.0';
 
 		$('#projectName').val(this.data.name);
 		$('#projectWidth').val(this.data.system.width);
@@ -58,6 +60,6 @@ editor.Config = Class.extend({
 	    if (!dontReload) editor.server.io.emit('command', 'reloadGame');
 
 	    editor.projects.updateInfo();
-	    this.project.updateModuleList();
+	    // this.project.updateModuleList();
 	}
 });

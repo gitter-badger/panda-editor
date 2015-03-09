@@ -773,7 +773,7 @@ var editor = {
     createProject: function(dir) {
         if (this.loading) return;
         
-        if (this.project) {
+        if (this.project && !dir) {
             var sure = confirm('Create new project? (Changes will be lost)');
             if (!sure) return;
         }
@@ -789,12 +789,14 @@ var editor = {
 
         this.showLoader(true);
 
-        console.log('Creating new project');
+        console.log('Creating new project ' + dir + '/' + folder);
 
         var worker = this.child_process.fork('js/worker.js');
         worker.on('message', this.projectCreated.bind(this, dir + '/' + folder));
         worker.on('exit', this.projectCreated.bind(this, ''));
-        worker.send(['create', dir, [folder]]);
+        var params = [folder];
+        if (this.preferences.data.develop) params.push('dev');
+        worker.send(['create', dir, params]);
     },
 
     projectCreated: function(dir, err) {
@@ -805,6 +807,7 @@ var editor = {
         }
         else {
             console.log('Created project ' + dir);
+            this.projects.current = {};
             this.loadProject(dir);
         }
     },
