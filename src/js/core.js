@@ -799,6 +799,10 @@ var editor = {
         worker.send(['create', dir, params]);
     },
 
+    saveConfig: function() {
+        this.project.config.save();
+    },
+
     projectCreated: function(dir, err) {
         this.hideLoader();
 

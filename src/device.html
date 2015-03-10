@@ -135,15 +135,15 @@ game.module('engine.editor')
 .body(function() {
 	game.Debug.inject({
 		init: function() {
-			this.parent();
+			this.super();
 			this.debugDiv.addEventListener('touchstart', function() {
 				history.back();
 			});
 		},
 
-		setText: function(text) {
+		_setText: function(text) {
 			text += ' CONNECTED: ' + app.connected;
-			this.parent(text);
+			this.super(text);
 		}
 	});
 });

@@ -50,8 +50,6 @@ Object.defineProperty(console, '__stack', {
 	}
 });
 
-window.console = console;
-
 window.onerror = function(msg, file, line) {
 	var idx = file.lastIndexOf('/');
 	if (idx > -1) file = file.substr(idx + 1);

@@ -57,7 +57,7 @@ editor.Server = Class.extend({
 	    for (var i = this.devices.length - 1; i >= 0; i--) {
 	        var device = this.devices[i];
 	        if (device.socket === socket) {
-	            console.log(device.model + ' disconnected');
+	            console.log('Device disconnected');
 	            this.devices.splice(i, 1);
 	            if (device.div) this.updateDeviceList();
 	            return;

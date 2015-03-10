@@ -1,7 +1,5 @@
 editor.Project = Class.extend({
 	modules: {},
-	assets: {},
-	assetCount: 0,
 	filesToWrite: [],
 
 	init: function(dir, loadCallback) {
@@ -223,7 +221,9 @@ editor.Project = Class.extend({
 
 	            if (module === 'game.assets') {
 	                for (var asset in editor.assets.assets) {
-	                    data += 'game.addAsset(\'' + asset + '\', \'' + editor.assets.assets[asset] + '\');\n';
+	                    data += 'game.addAsset(\'' + asset + '\'';
+	                    if (asset !== editor.assets.assets[asset]) data += ', \'' + editor.assets.assets[asset] + '\'';
+	                    data += ');\n';
 	                }
 	                data += '\n';
 	            }

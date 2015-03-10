@@ -1,12 +1,16 @@
 editor.Assets = Class.extend({
 	assets: {},
 	assetsToCopy: [],
+	assetsToParse: [],
 	assetTypes: [
-	    'image/png',
-	    'image/jpeg',
-	    'application/json',
-	    'audio/x-m4a',
-	    'audio/ogg'
+	    'png',
+	    'jpg',
+	    'jpeg',
+	    'json',
+	    'm4a',
+	    'ogg',
+	    'wav',
+	    'fnt'
 	],
 	count: 0,
 
@@ -31,27 +35,78 @@ editor.Assets = Class.extend({
 
 	copy: function(files) {
 		this.assetsToCopy.length = 0;
+		this.assetsToParse.length = 0;
 
 		for (var i = 0; i < files.length; i++) {
 		    var file = files[i];
-		    if (this.assetTypes.indexOf(file.type) !== -1) {
+		    // File already found
+		    if (this.assets[file.name]) continue;
+		    var ext = file.name.split('.')[1];
+		    if (this.assetTypes.indexOf(ext) !== -1) {
 		        this.assetsToCopy.push(file);
+		    }
+		    if (ext === 'json' || ext === 'fnt') {
+		    	this.assetsToParse.push(file);
 		    }
 		}
 
 		if (this.assetsToCopy.length > 0) this.copyAssets();
 	},
 
-	copyAssets: function() {
+	copyAssets: function(dontAdd) {
 	    var file = this.assetsToCopy.pop();
 	    if (!file) {
-	        editor.project.modules['game.assets'].changed = true;
-	        editor.saveChanges();
+	    	this.parseAssets();
 	        return;
 	    }
 
 	    console.log('Copying asset ' + file.path);
-	    this.copyFile(file.path, editor.project.dir + '/media/' + file.name, this.assetCopied.bind(this, file.name));
+	    this.copyFile(file.path, editor.project.dir + '/media/' + file.name, this.assetCopied.bind(this, file.name, dontAdd));
+	},
+
+	parseAssets: function() {
+		var file = this.assetsToParse.pop();
+		if (!file) {
+			if (this.assetsToCopy.length > 0) {
+				this.copyAssets(true);
+				return;
+			}
+		    editor.project.modules['game.assets'].changed = true;
+		    editor.saveChanges();
+		    return;
+		}
+
+		console.log('Parsing file ' + file.path);
+		editor.fs.readFile(file.path, {
+			encoding: 'utf-8'
+		}, this.parseFile.bind(this, file));
+	},
+
+	parseFile: function(file, err, data) {
+		if (err) return console.error(err);
+
+		try {
+			data = JSON.parse(data);
+		}
+		catch (e) {
+			var parser = new DOMParser();
+			data = parser.parseFromString(data, 'text/xml');
+		}
+
+		// Spritesheet
+		if (data.meta && data.meta.image) {
+			var image = data.meta.image;
+			var path = file.path.replace(file.name, image);
+			this.assetsToCopy.push({name: image, path: path});
+		}
+		// Bitmap font
+		else {
+			var font = data.getElementsByTagName('page')[0].getAttribute('file');
+			var path = file.path.replace(file.name, font);
+			this.assetsToCopy.push({name: font, path: path});
+		}
+
+		this.parseAssets();
 	},
 
 	copyFile: function(source, target, callback) {
@@ -78,10 +133,10 @@ editor.Assets = Class.extend({
 	    }
 	},
 
-	assetCopied: function(filename, err) {
-	    if (err) return console.error('Error copying asset ' + filename);
-	    this.add(filename);
-	    this.copyAssets();
+	assetCopied: function(filename, dontAdd, err) {
+	    if (err) return console.error(err);
+	    if (!dontAdd) this.add(filename);
+	    this.copyAssets(dontAdd);
 	},
 
 	click: function(filename, div, event) {

@@ -3,7 +3,10 @@ editor.ErrorHandler = Class.extend({
 	    var module = 'game.' + file.split('.')[0];
 
 	    module = editor.project.modules[module];
-	    if (!module) return;
+	    if (!module) {
+	    	console.error(file + ':' + line + ' ' + msg);
+	    	return;
+	    }
 
 	    var lines = module.data.split(/\r?\n/);
 	    var errorLine = lines[line - 1];
@@ -26,8 +29,6 @@ editor.ErrorHandler = Class.extend({
 	            break;
 	        }
 	    }
-	    // console.log('Error on class ' + errorClass + ' line ' + errorClassLine);
-	    // console.log('Got error at ' + file + ' line ' + line + ': ' + msg);
 	    console.error(file + ':' + line + ' ' + msg);
 
 	    this.highlight(errorClass, errorClassLine);
