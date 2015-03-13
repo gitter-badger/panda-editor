@@ -20,6 +20,7 @@ editor.Config = Class.extend({
 
 		this.data.system = this.data.system || {};
 		this.data.debug = this.data.debug || {};
+		this.data.debugDraw = this.data.debugDraw || {};
 
 		// Default config
 		if (typeof this.data.system.startScene === 'undefined') this.data.system.startScene = 'Main';
@@ -36,6 +37,7 @@ editor.Config = Class.extend({
 		$('#projectResize').prop('checked', this.data.system.resize);
 		$('#projectRotateScreen').prop('checked', this.data.system.rotateScreen);
 		$('#projectDebug').prop('checked', this.data.debug.enabled);
+		$('#projectDebugDraw').prop('checked', this.data.debug.enabled);
 	},
 
 	save: function(dontReload) {
@@ -50,11 +52,12 @@ editor.Config = Class.extend({
 	    this.data.system.resize = $('#projectResize').is(':checked');
 	    this.data.system.rotateScreen = $('#projectRotateScreen').is(':checked');
 	    this.data.debug.enabled = $('#projectDebug').is(':checked');
+	    this.data.debugDraw.enabled = $('#projectDebugDraw').is(':checked');
 
 	    editor.fs.writeFile(this.project.dir + '/src/game/config.js', 'pandaConfig = ' + JSON.stringify(this.data, null, 4) + ';', {
 	        encoding: 'utf-8'
 	    }, function(err) {
-	        if (err) console.log('Error writing config');
+	        if (err) console.error('Error writing config file');
 	    });
 
 	    if (!dontReload) editor.server.io.emit('command', 'reloadGame');

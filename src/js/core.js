@@ -191,11 +191,9 @@ var editor = {
     },
 
     reloadAll: function() {
-        if (!this.io) return;
-
         console.log('Reloaded all devices');
         $('#devices .list').html('');
-        this.devices.length = 0;
+        this.server.devices.length = 0;
         this.server.emit('reloadGame');
     },
 
@@ -835,5 +833,9 @@ var editor = {
     hideLoader: function() {
         this.loading = false;
         $('#loader').hide();
+    },
+
+    disconnectAll: function() {
+        this.server.disconnectAll();
     }
 };

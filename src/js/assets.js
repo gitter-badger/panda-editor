@@ -110,6 +110,8 @@ editor.Assets = Class.extend({
 	},
 
 	copyFile: function(source, target, callback) {
+		// TODO check if target already exists
+		
 	    var cbCalled = false;
 
 	    var rd = editor.fs.createReadStream(source);
@@ -163,14 +165,15 @@ editor.Assets = Class.extend({
 	},
 
 	remove: function(filename, div) {
-	    var sure = confirm('Remove asset ' + filename + '? (File will be deleted)');
+	    var sure = confirm('Remove asset ' + filename + '? (File not deleted)');
 	    if (!sure) return;
 
+	    console.log('Removing asset ' + filename);
 	    delete this.assets[filename];
 	    $(div).remove();
-	    editor.fs.unlink(this.project.dir + '/media/' + filename, function(err) {
-	        if (err) console.error(err);
-	    });
+	    // editor.fs.unlink(this.project.dir + '/media/' + filename, function(err) {
+	    //     if (err) console.error(err);
+	    // });
 	    this.count--;
 	    $('#assets .header').html('Assets (' + this.count + ')');
 
