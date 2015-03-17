@@ -24,6 +24,7 @@
     <script type="text/javascript" src="js/console.js"></script>
     <script type="text/javascript" src="js/server.js"></script>
     <script type="text/javascript" src="js/assets.js"></script>
+    <script type="text/javascript" src="js/audio.js"></script>
     <script type="text/javascript">
         $(function() { editor.init(); });
     </script>
@@ -35,6 +36,7 @@
     <div id="menu" class="ace_gutter">
         <div class="item disabled" data-target="modules"><img src="img/icons/bolt.png" srcset="img/icons@2x/bolt.png 2x"></div>
         <div class="item disabled" data-target="assets"><img src="img/icons/image.png" srcset="img/icons@2x/image.png 2x"></div>
+        <div class="item disabled" data-target="audio"><img src="img/icons/speaker.png" srcset="img/icons@2x/speaker.png 2x"></div>
         <div class="item disabled" data-target="plugins"><img src="img/icons/plugin.png" srcset="img/icons@2x/plugin.png 2x"></div>
         <div class="item disabled" data-target="devices"><img src="img/icons/tablet.png" srcset="img/icons@2x/tablet.png 2x"></div>
         <div class="item disabled" data-target="project"><img src="img/icons/gear.png" srcset="img/icons@2x/gear.png 2x"></div>
@@ -55,6 +57,14 @@
         <div class="content">
             <div class="list"></div>
             <div class="drop">Drop assets here</div>
+        </div>
+    </div>
+
+    <div id="audio" class="tab">
+        <div class="header ace_function">Audio</div>
+        <div class="content">
+            <div class="list"></div>
+            <div class="drop">Drop audio here</div>
         </div>
     </div>
 

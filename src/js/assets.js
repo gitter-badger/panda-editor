@@ -7,9 +7,6 @@ editor.Assets = Class.extend({
 	    'jpg',
 	    'jpeg',
 	    'json',
-	    'm4a',
-	    'ogg',
-	    'wav',
 	    'fnt'
 	],
 	count: 0,
@@ -110,7 +107,7 @@ editor.Assets = Class.extend({
 	},
 
 	copyFile: function(source, target, callback) {
-		// TODO check if target already exists
+		if (source === target) return callback();
 		
 	    var cbCalled = false;
 

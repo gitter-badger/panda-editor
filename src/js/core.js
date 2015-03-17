@@ -1,8 +1,7 @@
 // TODO
 // Add/remove module
 // Asset subfolders
-// Adding spritesheet json (copy png also)
-// Adding audio files
+// Loading audio files
 
 var editor = {
     info: require('./package.json'),
@@ -22,6 +21,7 @@ var editor = {
         this.contextMenu = new this.ContextMenu();
         this.errorHandler = new this.ErrorHandler();
         this.assets = new this.Assets();
+        this.audio = new this.Audio();
         this.initWindow();
         this.menu = new this.Menu();
 
@@ -311,6 +311,7 @@ var editor = {
         }
         else {
             this.assets.copy(event.dataTransfer.files);
+            this.audio.copy(event.dataTransfer.files);
         }
     },
 

@@ -118,6 +118,15 @@ editor.Project = Class.extend({
 
 	                editor.assets.add(path, id);
 	            }
+	            if (expName === 'addAudio') {
+	            	var args = nodes[i].expression.arguments;
+	            	
+	            	var path = args[0].value;
+	            	var id = path;
+	            	if (args[1]) id = args[1].value;
+
+	            	editor.audio.add(path, id);
+	            }
 	            if (expName === 'createClass' || expName === 'createScene') {
 	                var args = nodes[i].expression.arguments;
 	                // console.log(args[0].value);
@@ -223,6 +232,11 @@ editor.Project = Class.extend({
 	                for (var asset in editor.assets.assets) {
 	                    data += 'game.addAsset(\'' + asset + '\'';
 	                    if (asset !== editor.assets.assets[asset]) data += ', \'' + editor.assets.assets[asset] + '\'';
+	                    data += ');\n';
+	                }
+	                for (var audio in editor.audio.audio) {
+	                    data += 'game.addAudio(\'' + editor.audio.audioFolder + '/' + audio + '\'';
+	                    if (audio !== editor.audio.audio[audio]) data += ', \'' + editor.audio.audio[audio] + '\'';
 	                    data += ');\n';
 	                }
 	                data += '\n';

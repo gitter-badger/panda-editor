@@ -81,7 +81,7 @@ var app = {
 			this.errorDiv = null;
 		}
 		
-		if (game.assetQueue.length > 0) {
+		if (game.assetQueue.length + game.audioQueue.length > 0) {
 			var loader = new game.Loader(scene);
 			loader.start();
 		}
