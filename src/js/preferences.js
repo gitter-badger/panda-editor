@@ -3,7 +3,8 @@ editor.Preferences = Class.extend({
 	    fontSize: 16,
 	    port: 3000,
 	    theme: 'sunburst',
-	    develop: 0
+	    develop: 0,
+	    loadLastProject: 0
 	},
 
 	init: function() {

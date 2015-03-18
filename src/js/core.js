@@ -25,8 +25,8 @@ var editor = {
         this.initWindow();
         this.menu = new this.Menu();
 
-        // this.loadLastProject();
-        this.showTab('projects');
+        if (this.preferences.data.loadLastProject === '1') this.projects.loadLast();
+        else this.showTab('projects');
     },
 
     initEvents: function() {

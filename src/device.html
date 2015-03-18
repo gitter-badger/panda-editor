@@ -28,19 +28,38 @@ var app = {
 
 		this.socket.emit('errorMsg', file, line, msg);
 
-		var errorDiv = document.createElement('div');
-		errorDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
-		errorDiv.style.position = 'absolute';
-		errorDiv.style.left = '0px';
-		errorDiv.style.top = '0px';
-		errorDiv.style.zIndex = '9999';
-		errorDiv.style.width = '100%';
-		errorDiv.style.height = '100%';
-		document.body.appendChild(errorDiv);
-		this.errorDiv = errorDiv;
+		this.showErrorDiv();
 
 		game.system.pause();
 		return false;
+	},
+
+	showErrorDiv: function() {
+		if (this.errorDiv) return;
+
+		var errorDiv = document.createElement('div');
+		errorDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.25)';
+		errorDiv.style.position = 'absolute';
+		errorDiv.style.left = '0px';
+		errorDiv.style.top = '0px';
+		errorDiv.style.zIndex = '999999';
+		errorDiv.style.width = '100%';
+		errorDiv.style.height = '100%';
+		errorDiv.ontouchstart = this.errorDivTouch.bind(this);
+		errorDiv.onmousedown = this.errorDivTouch.bind(this);
+		document.body.appendChild(errorDiv);
+		this.errorDiv = errorDiv;
+	},
+
+	hideErrorDiv: function() {
+		if (!this.errorDiv) return;
+		document.body.removeChild(this.errorDiv);
+		this.errorDiv = null;
+	},
+
+	errorDivTouch: function(event) {
+		event.preventDefault();
+		this.reloadGame();
 	},
 
 	closeSocket: function() {
@@ -76,10 +95,7 @@ var app = {
 	changeScene: function(scene) {
 		scene = scene || game.system.sceneName;
 
-		if (this.errorDiv) {
-			document.body.removeChild(this.errorDiv);
-			this.errorDiv = null;
-		}
+		this.hideErrorDiv();
 		
 		if (game.assetQueue.length + game.audioQueue.length > 0) {
 			var loader = new game.Loader(scene);
