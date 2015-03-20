@@ -59,6 +59,7 @@ var editor = {
     buttonClick: function(event) {
         var target = $(event.currentTarget).attr('href');
         if (typeof this[target] === 'function') this[target]();
+        if (this.editor) this.editor.focus();
     },
 
     setStartScene: function(name) {

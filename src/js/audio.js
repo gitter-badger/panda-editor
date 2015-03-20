@@ -28,6 +28,11 @@ editor.Audio = Class.extend({
 	    $(div).appendTo($('#audio .content .list'));
 	},
 
+	clear: function() {
+		$('#audio .content .list').html('');
+		$('#audio .header').html('Audio');
+	},
+
 	copy: function(files) {
 		this.audioToCopy.length = 0;
 

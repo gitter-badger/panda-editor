@@ -191,8 +191,6 @@ editor.Project = Class.extend({
 	},
 
 	save: function() {
-	    console.log('Saving changes');
-
 	    this.filesToWrite.length = 0;
 	    for (var module in this.modules) {
 	        var needToSave = false;
@@ -272,6 +270,7 @@ editor.Project = Class.extend({
 	        }
 	    }
 
+	    if (this.filesToWrite.length === 0) return;
 	    this.writeFiles();
 	},
 

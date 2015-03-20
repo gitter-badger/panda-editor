@@ -30,6 +30,12 @@ editor.Assets = Class.extend({
 	    $(div).appendTo($('#assets .content .list'));
 	},
 
+	clear: function() {
+		$('#assets .content .list').html('');
+		$('#assets .header').html('Assets');
+		this.count = 0;
+	},
+
 	copy: function(files) {
 		this.assetsToCopy.length = 0;
 		this.assetsToParse.length = 0;

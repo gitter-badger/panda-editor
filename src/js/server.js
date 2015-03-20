@@ -25,6 +25,11 @@ editor.Server = Class.extend({
 		    res.sendStatus(200);
 		});
 
+		app.use(function(req, res, next) {
+	        res.setHeader('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
+	        next();
+		});
+
 		app.use(require('connect-inject')({ snippet: script }));
 
 		this.staticServe = this.express.static(editor.project.dir);
@@ -51,6 +56,12 @@ editor.Server = Class.extend({
 	    socket.on('disconnect', this.deviceDisconnected.bind(this, socket));
 	    socket.on('register', this.registerDevice.bind(this, socket));
 	    socket.on('errorMsg', editor.errorHandler.receive.bind(editor.errorHandler));
+	    socket.on('console', this.onConsole.bind(this, socket));
+	},
+
+	onConsole: function(socket, type, msg) {
+		var device = socket.device;
+		console[type](device.platform + ' ' + device.model + ': ' + msg);
 	},
 
 	deviceDisconnected: function(socket) {
@@ -75,6 +86,7 @@ editor.Server = Class.extend({
 	        data.model = 'Phone';
 	    }
 	    data.socket = socket;
+	    socket.device = data;
 	    this.devices.push(data);
 	    this.updateDeviceList();
 	    console.log('Registered device ' + data.platform + ' ' + data.model);

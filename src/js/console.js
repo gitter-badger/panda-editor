@@ -1,4 +1,5 @@
-var console = {
+var previousConsole = window.console || {};
+window.console = {
 	colors: [
 		'#fff',
 		'#fc0',
@@ -11,17 +12,20 @@ var console = {
 		return filename + ':' + lineNumber + ' ' + args;
 	},
 
-	log: function() {
+	log: function(msg) {
+		previousConsole.log && previousConsole.log(msg);
 		var logLine = this.get(Array.prototype.slice.call(arguments), this.__stack[1].getLineNumber(), this.__stack[1].getFileName());
 		this.set(0, logLine);
 	},
 
-	warn: function() {
+	warn: function(msg) {
+		previousConsole.warn && previousConsole.warn(msg);
 		var logLine = this.get(Array.prototype.slice.call(arguments), this.__stack[1].getLineNumber(), this.__stack[1].getFileName());
 		this.set(1, logLine);
 	},
 
-	error: function() {
+	error: function(msg) {
+		previousConsole.error && previousConsole.error(msg);
 		var logLine = this.get(Array.prototype.slice.call(arguments), this.__stack[1].getLineNumber(), this.__stack[1].getFileName());
 		this.set(2, logLine);
 	},

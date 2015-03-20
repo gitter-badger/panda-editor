@@ -76,10 +76,12 @@ var app = {
 			platform: this.platform,
 			model: this.model
 		});
+		if (this.hadConnection) this.reloadGame();
 	},
 
 	onDisconnect: function() {
 		this.connected = false;
+		this.hadConnection = true;
 	},
 
 	exitGame: function() {
@@ -149,19 +151,58 @@ game.module('engine.editor')
 .require('engine.debug')
 .body(function() {
 	game.Debug.inject({
-		init: function() {
-			this.super();
-			this.debugDiv.addEventListener('touchstart', function() {
-				history.back();
-			});
-		},
-
 		_setText: function(text) {
 			text += ' CONNECTED: ' + app.connected;
 			this.super(text);
 		}
 	});
+	// Disable debug start messages
+	game.onStart = function() {};
 });
 
+var previousConsole = window.console || {};
+window.console = {
+	log: function(msg) {
+		previousConsole.log && previousConsole.log(msg);
+		app.socket.emit('console', 'log', msg);
+	},
+
+	warn: function(msg) {
+		previousConsole.warn && previousConsole.warn(msg);
+		app.socket.emit('console', 'warn', msg);
+	},
+
+	error: function(msg) {
+		previousConsole.error && previousConsole.error(msg);
+		app.socket.emit('console', 'error', msg);
+	}
+};
+
+var currentTouches = {},
+    eventName = { touchstart: 'touchstart', touchend: 'touchend' };
+
+if (window.navigator.msPointerEnabled) {
+    eventName = { touchstart: 'MSPointerDown', touchend: 'MSPointerUp' };
+}
+
+document.addEventListener(eventName.touchstart, function(evt) {
+    var touches = evt.touches || [evt],
+        touch;
+    for(var i = 0, l = touches.length; i < l; i++) {
+        touch = touches[i];
+        currentTouches[touch.identifier || touch.pointerId] = touch;
+    }
+}, false);
+
+document.addEventListener(eventName.touchend, function(evt) {
+    var touchCount = Object.keys(currentTouches).length;
+    currentTouches = {};
+    if (touchCount === 3) {
+        evt.preventDefault();
+        window.history.back(window.history.length);
+    }
+}, false);
+
 app.init();
+
 </script>

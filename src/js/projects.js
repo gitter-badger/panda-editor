@@ -55,7 +55,8 @@ editor.Projects = Class.extend({
 		    if (!sure) return;
 		}
 
-		$('#assets .content .list').html('');
+		editor.assets.clear();
+		editor.audio.clear();
 
 		editor.showLoader(true);
 		this.current = new editor.Project(dir, this.loaded.bind(this));
