@@ -6,6 +6,8 @@ snippet proto\n\
 	${1:class_name}.prototype.${2:method_name} = function(${3:first_argument}) {\n\
 		${4:// body...}\n\
 	};\n\
+snippet log\n\
+	console.log(${1:'${2}'});\n\
 snippet addTimer\n\
 	addTimer(${1:1000}, ${2:callback}, ${3:repeat});\n\
 snippet addObject\n\

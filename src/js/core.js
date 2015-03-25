@@ -101,18 +101,7 @@ var editor = {
         console.log('Initializing editor');
 
         this.editor = ace.edit('editor');
-        this.editor.setTheme('ace/theme/' + this.preferences.data.theme);
-        this.editor.getSession().setMode('ace/mode/javascript');
-        this.editor.$blockScrolling = Infinity;
         
-        this.editor.setOptions({
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true,
-            enableSnippets: true,
-            showPrintMargin: false,
-            displayIndentGuides: true,
-            showFoldWidgets: false
-        });
         this.editor.commands.addCommand({
             name: 'saveChanges',
             bindKey: { mac: 'Cmd-S', win: 'Ctrl-S' },
@@ -367,7 +356,8 @@ var editor = {
 
     getClassName: function(className, extend) {
         if (extend !== 'Class' && extend !== 'Scene') {
-            return extend + ' > ' + className;
+            // return extend + ' > ' + className;
+            return className + ' (' + extend + ')';
         }
         return className;
     },
@@ -705,7 +695,7 @@ var editor = {
     },
 
     newClassObject: function(className, module, data, extend) {
-        var session = ace.createEditSession(data, 'ace/mode/javascript');
+        var session = ace.createEditSession(data);
         if (className.indexOf('Scene') === 0) extend = 'Scene';
         var classObj = {
             name: className,

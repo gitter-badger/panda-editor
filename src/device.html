@@ -194,12 +194,16 @@ document.addEventListener(eventName.touchstart, function(evt) {
     }
 }, false);
 
-document.addEventListener(eventName.touchend, function(evt) {
+document.addEventListener(eventName.touchend, function(event) {
     var touchCount = Object.keys(currentTouches).length;
     currentTouches = {};
     if (touchCount === 3) {
-        evt.preventDefault();
+        event.preventDefault();
         window.history.back(window.history.length);
+    }
+    if (touchCount === 4) {
+    	event.preventDefault();
+    	app.reloadGame();
     }
 }, false);
 

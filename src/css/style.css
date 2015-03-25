@@ -294,6 +294,10 @@ label {
 	background: #000;
 }
 
+#editor .ace_gutter, #editor .ace_gutter-layer {
+	width: 55px !important;
+}
+
 #loader {
 	position: absolute;
 	left: 9px;

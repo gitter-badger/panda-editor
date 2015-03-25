@@ -8537,7 +8537,7 @@ var EditSession = function(text, mode) {
             var options = mode;
             var path = options.path;
         } else {
-            path = mode || "ace/mode/text";
+            path = mode || "ace/mode/javascript";
         }
         if (!this.$modes["ace/mode/text"])
             this.$modes["ace/mode/text"] = new TextMode();
@@ -10499,7 +10499,7 @@ exports.commands = [{
     readOnly: true
 }, {
     name: "findprevious",
-    bindKey: bindKey("Ctrl-Shift-K", "Command-Shift-G"),
+    bindKey: bindKey("Ctrl-Shift-G", "Command-Shift-G"),
     exec: function(editor) { editor.findPrevious(); },
     multiSelectAction: "forEach",
     scrollIntoView: "center",
@@ -10787,7 +10787,7 @@ exports.commands = [{
     multiSelectAction: "forEach"
 }, {
     name: "removeline",
-    bindKey: bindKey("Ctrl-D", "Command-D"),
+    bindKey: bindKey("Ctrl-Shift-K", "Ctrl-Shift-K"),
     exec: function(editor) { editor.removeLines(); },
     scrollIntoView: "cursor",
     multiSelectAction: "forEachLine"
@@ -10812,7 +10812,7 @@ exports.commands = [{
 }, {
     name: "toggleBlockComment",
     bindKey: bindKey("Ctrl-Shift-/", "Command-Shift-/"),
-    exec: function(editor) { editor.toggleBlockComment(); },
+    exec: function(editor) { editor.toggleCommentLines(); },
     multiSelectAction: "forEach",
     scrollIntoView: "selectionPart"
 }, {
@@ -11096,7 +11096,7 @@ var Editor = function(renderer, session) {
     this.$mouseHandler = new MouseHandler(this);
     new FoldHandler(this);
 
-    this.$blockScrolling = 0;
+    this.$blockScrolling = Infinity;
     this.$search = new Search().set({
         wrap: true
     });
@@ -13191,7 +13191,7 @@ var Gutter = function(parentEl) {
         return this.$showLineNumbers;
     };
     
-    this.$showFoldWidgets = true;
+    this.$showFoldWidgets = false;
     this.setShowFoldWidgets = function(show) {
         if (show)
             dom.addCssClass(this.element, "ace_folding-enabled");
@@ -15942,7 +15942,7 @@ config.defineOptions(VirtualRenderer.prototype, "renderer", {
     },
     showPrintMargin: {
         set: function() { this.$updatePrintMargin(); },
-        initialValue: true
+        initialValue: false
     },
     printMarginColumn: {
         set: function() { this.$updatePrintMargin(); },
@@ -16066,7 +16066,7 @@ config.defineOptions(VirtualRenderer.prototype, "renderer", {
     theme: {
         set: function(val) { this.setTheme(val) },
         get: function() { return this.$themeId || this.theme; },
-        initialValue: "./theme/textmate",
+        initialValue: "./theme/sunburst",
         handlesSet: true
     }
 });
@@ -16686,7 +16686,7 @@ exports.defaultCommands = [{
 }, {
     name: "selectMoreAfter",
     exec: function(editor) { editor.selectMore(1); },
-    bindKey: {win: "Ctrl-Alt-Right", mac: "Ctrl-Alt-Right"},
+    bindKey: {win: "Ctrl-D", mac: "Command-D"},
     scrollIntoView: "cursor",
     readonly: true
 }, {

@@ -1898,7 +1898,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
                 this.commands.removeCommand(Autocomplete.startCommand);
             }
         },
-        value: false
+        value: true
     },
     enableLiveAutocompletion: {
         set: function(val) {
@@ -1910,7 +1910,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
                 this.commands.removeListener('afterExec', doLiveAutocomplete);
             }
         },
-        value: false
+        value: true
     },
     enableSnippets: {
         set: function(val) {
@@ -1923,7 +1923,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
                 this.off("changeMode", onChangeMode);
             }
         },
-        value: false
+        value: true
     }
 });
 });
