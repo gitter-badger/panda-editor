@@ -4,65 +4,36 @@ editor.Config = Class.extend({
 
 		console.log('Loading config');
 
-		var configFile = project.dir + '/src/game/config.js';
+		this.configFile = project.dir + '/src/game/config.js';
 
-		delete global.require.cache[configFile];
+		var data = editor.fs.readFileSync(this.configFile, {
+			encoding: 'utf-8'
+		});
 
-		try {
-		    require(configFile);
-		}
-		catch(e) {
-		    return console.error('File not found: ' + configFile);
-		}
-
-		this.data = global.pandaConfig;
-		delete global.pandaConfig;
-
-		this.data.system = this.data.system || {};
-		this.data.debug = this.data.debug || {};
-		this.data.debugDraw = this.data.debugDraw || {};
-
-		// Default config
-		if (typeof this.data.system.startScene === 'undefined') this.data.system.startScene = 'Main';
-		if (typeof this.data.system.rotateScreen === 'undefined') this.data.system.rotateScreen = true;
-		if (typeof this.data.name === 'undefined') this.data.name = this.project.folder;
-		if (typeof this.data.version === 'undefined') this.data.version = '0.0.0';
-
-		$('#projectName').val(this.data.name);
-		$('#projectWidth').val(this.data.system.width);
-		$('#projectHeight').val(this.data.system.height);
-		$('#projectStartScene').val(this.data.system.startScene);
-		$('#projectCenter').prop('checked', this.data.system.center);
-		$('#projectScale').prop('checked', this.data.system.scale);
-		$('#projectResize').prop('checked', this.data.system.resize);
-		$('#projectRotateScreen').prop('checked', this.data.system.rotateScreen);
-		$('#projectDebug').prop('checked', this.data.debug.enabled);
-		$('#projectDebugDraw').prop('checked', this.data.debug.enabled);
+		this.update(data);
+		this.rawData = data;
 	},
 
 	save: function(dontReload) {
 	    console.log('Saving config');
 
-	    this.data.name = $('#projectName').val();
-	    this.data.system.width = parseInt($('#projectWidth').val());
-	    this.data.system.height = parseInt($('#projectHeight').val());
-	    this.data.system.startScene = $('#projectStartScene').val();
-	    this.data.system.center = $('#projectCenter').is(':checked');
-	    this.data.system.scale = $('#projectScale').is(':checked');
-	    this.data.system.resize = $('#projectResize').is(':checked');
-	    this.data.system.rotateScreen = $('#projectRotateScreen').is(':checked');
-	    this.data.debug.enabled = $('#projectDebug').is(':checked');
-	    this.data.debugDraw.enabled = $('#projectDebugDraw').is(':checked');
+	    this.rawData = editor.editor.getSession().getValue();
+	    editor.fs.writeFile(this.configFile, this.rawData, this.saveComplete.bind(this));
+	},
 
-	    editor.fs.writeFile(this.project.dir + '/src/game/config.js', 'pandaConfig = ' + JSON.stringify(this.data, null, 4) + ';', {
-	        encoding: 'utf-8'
-	    }, function(err) {
-	        if (err) console.error('Error writing config file');
-	    });
+	update: function(rawData) {
+		eval(rawData);
+		this.data = pandaConfig;
+		delete pandaConfig;
+	},
 
-	    if (!dontReload) editor.server.io.emit('command', 'reloadGame');
-
-	    editor.projects.updateInfo();
-	    // this.project.updateModuleList();
+	saveComplete: function(err) {
+		if (err) console.error('Error writing config file: ' + this.configFile);
+		else {
+			console.log('Config saved');
+			this.update(this.rawData);
+			editor.reloadAll();
+			editor.projects.updateInfo();
+		}
 	}
 });

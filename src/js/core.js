@@ -2,6 +2,7 @@
 // Add/remove module
 // Asset subfolders
 // Loading audio files
+// Extend from core class ***
 
 var editor = {
     info: require('./package.json'),
@@ -25,7 +26,7 @@ var editor = {
         this.initWindow();
         this.menu = new this.Menu();
 
-        if (this.preferences.data.loadLastProject === '1') this.projects.loadLast();
+        if (this.preferences.data.loadLastProject) this.projects.loadLast();
         else this.showTab('projects');
     },
 
@@ -101,6 +102,7 @@ var editor = {
         console.log('Initializing editor');
 
         this.editor = ace.edit('editor');
+        this.defaultSession = this.editor.getSession();
         
         this.editor.commands.addCommand({
             name: 'saveChanges',
@@ -165,10 +167,19 @@ var editor = {
 
         this.editor.focus();
         this.onResize();
+        this.preferences.apply();
     },
 
-    saveChanges: function() {
-        if (this.project) this.project.save();
+    saveChanges: function(force) {
+        if (!this.currentModule && this.currentClass === 'config') {
+            this.project.config.save();
+            return;
+        }
+        if (!this.currentModule && this.currentClass === 'preferences') {
+            this.preferences.save();
+            return;
+        }
+        if (this.project) this.project.save(force);
     },
 
     toggleCurrentTab: function() {
@@ -354,8 +365,13 @@ var editor = {
         this.assets.remove(filename, div);
     },
 
+    removeAudio: function(filename, div) {
+        this.audio.remove(filename, div);
+    },
+
     getClassName: function(className, extend) {
-        if (extend !== 'Class' && extend !== 'Scene') {
+        if (extend !== 'Class') {
+            if (extend === 'Scene') className = className.replace('Scene', '');
             // return extend + ' > ' + className;
             return className + ' (' + extend + ')';
         }
@@ -694,6 +710,26 @@ var editor = {
         else this.server = new this.Server(this);
     },
 
+    editConfig: function() {
+        var classObj = this.getCurrentClassObject();
+        if (classObj) $(classObj.div).removeClass('current');
+
+        this.editor.setSession(this.defaultSession);
+        this.defaultSession.setValue(this.project.config.rawData);
+        this.currentModule = null;
+        this.currentClass = 'config';
+    },
+
+    editPreferences: function() {
+        var classObj = this.getCurrentClassObject();
+        if (classObj) $(classObj.div).removeClass('current');
+
+        this.editor.setSession(this.defaultSession);
+        this.defaultSession.setValue(this.preferences.rawData);
+        this.currentModule = null;
+        this.currentClass = 'preferences';
+    },
+
     newClassObject: function(className, module, data, extend) {
         var session = ace.createEditSession(data);
         if (className.indexOf('Scene') === 0) extend = 'Scene';
@@ -709,6 +745,7 @@ var editor = {
     },
 
     getCurrentClassObject: function() {
+        if (!this.currentModule) return false;
         if (!this.currentClass && !this.currentModule) return false;
         if (!this.currentClass) return this.project.modules[this.currentModule];
         return this.project.modules[this.currentModule].classes[this.currentClass];
@@ -718,7 +755,7 @@ var editor = {
         var hasUndo = classObj.session.getUndoManager().hasUndo();
         
         // FIXME why hasUndo is false, when inserting text?
-        if (event.data.action === 'insertText' || event.data.action === 'removeText') {
+        if (event.data.action === 'insertText' || event.data.action === 'removeText' || event.data.action === 'removeLines') {
             hasUndo = true;
             this.errorHandler.clear(classObj.name);
         }

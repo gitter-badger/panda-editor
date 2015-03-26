@@ -190,10 +190,12 @@ editor.Project = Class.extend({
 		this.save();
 	},
 
-	save: function() {
+	save: function(force) {
 	    this.filesToWrite.length = 0;
 	    for (var module in this.modules) {
 	        var needToSave = false;
+	        var firstModule = true;
+	        if (firstModule && force) needToSave = true;
 
 	        if (this.modules[module].changed) needToSave = true;
 
@@ -226,20 +228,24 @@ editor.Project = Class.extend({
 	            }
 	            data += '.body(function() {\n\n';
 
-	            if (module === 'game.assets') {
+	            // Save assets to first module
+	            if (firstModule) {
+	            	firstModule = false;
 	                for (var asset in editor.assets.assets) {
 	                    data += 'game.addAsset(\'' + asset + '\'';
 	                    if (asset !== editor.assets.assets[asset]) data += ', \'' + editor.assets.assets[asset] + '\'';
 	                    data += ');\n';
 	                }
 	                for (var audio in editor.audio.audio) {
-	                    data += 'game.addAudio(\'' + editor.audio.audioFolder + '/' + audio + '\'';
+	                	var audioFile = audio.replace(editor.audio.audioFolder + '/', '');
+	                    data += 'game.addAudio(\'' + editor.audio.audioFolder + '/' + audioFile + '\'';
 	                    if (audio !== editor.audio.audio[audio]) data += ', \'' + editor.audio.audio[audio] + '\'';
 	                    data += ');\n';
 	                }
 	                data += '\n';
 	            }
 
+	            editor.sortClasses(module);
 	            for (var className in this.modules[module].classes) {
 	                var classObj = this.modules[module].classes[className];
 
@@ -295,7 +301,7 @@ editor.Project = Class.extend({
 			}
 		}
 
-		if (editor.server) {
+		if (editor.server && editor.preferences.data.reloadOnSave) {
 		    console.log('Emit reloadModules ' + changedModules);
 		    editor.server.io.emit('command', 'reloadModules', changedModules);
 		}
@@ -326,7 +332,7 @@ editor.Project = Class.extend({
 
 	    var classCount = 0;
 	    for (var name in this.modules) {
-	        if (name === 'game.assets') continue;
+	        // if (name === 'game.assets') continue;
 	        // if (name === 'game.main') continue;
 	        var div = document.createElement('div');
 	        $(div).addClass('module');
@@ -342,6 +348,8 @@ editor.Project = Class.extend({
 	        $(button).html('+');
 	        $(button).click(editor.newClass.bind(editor, name));
 	        $(button).appendTo(div);
+
+	        this.modules[name].classes = editor.ksort(this.modules[name].classes);
 
 	        for (var className in this.modules[name].classes) {
 	            classCount++;

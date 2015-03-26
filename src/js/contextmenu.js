@@ -19,6 +19,9 @@ editor.ContextMenu = Class.extend({
 		this.createMenu('asset');
 		this.addMenuItem('asset', 'Remove', 'removeAsset');
 
+		this.createMenu('audio');
+		this.addMenuItem('audio', 'Remove', 'removeAudio');
+
 		this.createMenu('module');
 		this.addMenuItem('module', 'New class', 'newClass');
 

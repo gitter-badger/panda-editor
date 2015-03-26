@@ -98,6 +98,9 @@ background-color: #632D04\
 .ace-sunburst .ace_markup.ace_list {\
 color: #E1D4B9\
 }\
+.ace-sunburst .ace_indent-guide {\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYIiPj/8PAARgAh2NTMh8AAAAAElFTkSuQmCC) right repeat-y\
+}\
 ";
 
 var dom = require("../lib/dom");

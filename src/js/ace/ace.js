@@ -9741,7 +9741,7 @@ config.defineOptions(EditSession.prototype, "session", {
             if (useWorker)
                 this.$startWorker();
         },
-        initialValue: true
+        initialValue: false
     },
     useSoftTabs: {initialValue: true},
     tabSize: {

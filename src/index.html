@@ -38,10 +38,8 @@
         <div class="item disabled" data-target="audio"><img src="img/icons/speaker.png" srcset="img/icons@2x/speaker.png 2x"></div>
         <div class="item disabled" data-target="plugins"><img src="img/icons/plugin.png" srcset="img/icons@2x/plugin.png 2x"></div>
         <div class="item disabled" data-target="devices"><img src="img/icons/tablet.png" srcset="img/icons@2x/tablet.png 2x"></div>
-        <div class="item disabled" data-target="project"><img src="img/icons/gear.png" srcset="img/icons@2x/gear.png 2x"></div>
-        <div class="item disabled" data-target="deploy"><img src="img/icons/toolbox.png" srcset="img/icons@2x/toolbox.png 2x"></div>
         <div class="item" data-target="projects"><img src="img/icons/folder.png" srcset="img/icons@2x/folder.png 2x"></div>
-        <div class="item" data-target="preferences"><img src="img/icons/tools.png" srcset="img/icons@2x/tools.png 2x"></div>
+        <div class="item disabled" data-target="deploy"><img src="img/icons/tools.png" srcset="img/icons@2x/tools.png 2x"></div>
     </div>
 
     <div id="modules" class="tab">
@@ -85,30 +83,15 @@
         </div>
     </div>
 
-    <div id="project" class="tab">
-        <div class="header ace_function">Config</div>
-        <div class="content">
-            <label class="ace_keyword" for="projectName">Name:</label><input type="text" id="projectName">
-            <label class="ace_keyword" for="projectWidth">Width:</label><input type="text" id="projectWidth">
-            <label class="ace_keyword" for="projectHeight">Height:</label><input type="text" id="projectHeight">
-            <label class="ace_keyword" for="projectStartScene">StartScene:</label><input type="text" id="projectStartScene">
-            <label class="ace_keyword" for="projectCenter">Center:</label><input type="checkbox" id="projectCenter">
-            <label class="ace_keyword" for="projectScale">Scale:</label><input type="checkbox" id="projectScale">
-            <label class="ace_keyword" for="projectResize">Resize:</label><input type="checkbox" id="projectResize">
-            <label class="ace_keyword" for="projectRotateScreen">RotateScreen:</label><input type="checkbox" id="projectRotateScreen">
-            <label class="ace_keyword" for="projectDebug">Debug:</label><input type="checkbox" id="projectDebug">
-            <label class="ace_keyword" for="projectDebugDraw">DebugDraw:</label><input type="checkbox" id="projectDebugDraw">
-            <button href="saveConfig">Save changes</button>
-        </div>
-    </div>
-
     <div id="deploy" class="tab">
-        <div class="header ace_function">Toolkit</div>
+        <div class="header ace_function">Tools</div>
         <div class="content">
             <div id="engineVersion"></div>
             <button href="openBrowser">Open in browser</button>
             <button href="buildProject">Build project</button>
             <button href="updateEngine">Update engine</button>
+            <button href="editConfig">Edit config</button>
+            <button href="editPreferences">Edit preferences</button>
         </div>
     </div>
 
@@ -118,14 +101,6 @@
             <div class="list"></div>
             <div class="drop">Drop project folder here</div>
             <button href="createProject">Create new project</button>
-        </div>
-    </div>
-
-    <div id="preferences" class="tab">
-        <div class="header ace_function">Preferences</div>
-        <div class="content">
-            <div class="list"></div>
-            <button href="savePreferences">Save changes</button>
         </div>
     </div>
 

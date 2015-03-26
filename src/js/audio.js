@@ -61,8 +61,7 @@ editor.Audio = Class.extend({
 	},
 
 	saveChanges: function() {
-		editor.project.modules['game.assets'].changed = true;
-		editor.saveChanges();
+		editor.saveChanges(true);
 	},
 
 	copyFile: function(source, target, callback) {
@@ -107,7 +106,7 @@ editor.Audio = Class.extend({
 	        newId = filename;
 	    }
 	    else {
-	        var newId = prompt('New id for audio ' + filename, this.audio[filename]);
+	        var newId = prompt('New id for ' + filename, this.audio[filename]);
 	        newId = editor.stripClassName(newId);
 	        if (!newId) return console.error('Invalid audio id');
 	        if (this.audio[newId] === newId) return console.error('Audio id already found');

@@ -152,7 +152,8 @@ game.module('engine.editor')
 .body(function() {
 	game.Debug.inject({
 		_setText: function(text) {
-			text += ' CONNECTED: ' + app.connected;
+			text += ' SCREEN: ' + window.screen.width + 'x' + window.screen.height;
+			text += ' WINDOW: ' + window.innerWidth + 'x' + window.innerHeight;
 			this.super(text);
 		}
 	});

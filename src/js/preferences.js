@@ -1,38 +1,24 @@
 editor.Preferences = Class.extend({
+	// Default
 	data: {
 	    fontSize: 16,
 	    port: 3000,
 	    theme: 'sunburst',
-	    develop: 0,
-	    loadLastProject: 0
+	    develop: false,
+	    loadLastProject: false,
+	    reloadOnSave: true
 	},
 
 	init: function() {
 	    // Load saved preferences
 	    var savedSettings = JSON.parse(editor.storage.get('preferences'));
 	    for (var name in savedSettings) {
-	        this.data[name] = savedSettings[name];
+	        if (typeof this.data[name] !== 'undefined') this.data[name] = savedSettings[name];
 	    }
 	    this.prevData = this.data;
+	    this.rawData = JSON.stringify(this.data, null, '    ');
 
-	    for (var name in this.data) {
-	        var label = document.createElement('label');
-	        $(label).addClass('ace_keyword');
-	        $(label).html(name);
-	        label.for = name;
-
-	        var input = document.createElement('input');
-	        input.type = 'text';
-	        input.id = name;
-	        input.value = this.data[name];
-	        
-	        $(label).appendTo($('#preferences .content .list'));
-	        $(input).appendTo($('#preferences .content .list'));
-	    }
-
-	    require('ace/config').setDefaultValue('session', 'useWorker', false);
-
-	    this.apply(true);
+	    // this.apply(true);
 	},
 
 	apply: function() {
@@ -41,23 +27,23 @@ editor.Preferences = Class.extend({
 
 	    editor.setFontSize(parseInt(this.data.fontSize));
 
-	    if (this.prevData.port !== this.data.port && editor.http) {
-	    	editor.restartServer();
+	    if (this.prevData.port !== this.data.port && editor.server.http) {
+	    	editor.server.restartServer();
 	    }
 	},
 
 	save: function() {
 	    console.log('Saving preferences');
 
+	    this.rawData = editor.editor.getSession().getValue();
+	    editor.storage.set('preferences', this.rawData);
+
 	    this.prevData = this.data;
-	    var settings = {};
-	    $('#preferences input').each(function(index, elem) {
-	        var id = $(elem).attr('id');
-	        var value = $(elem).val();
-	        settings[id] = value;
-	    });
-	    this.data = settings;
-	    editor.storage.set('preferences', JSON.stringify(this.data));
+	    this.data = JSON.parse(this.rawData);
+
+	    this.apply();
+
+	    console.log('Preferences saved');
 	},
 
 	reset: function() {
