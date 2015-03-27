@@ -37,6 +37,7 @@ editor.Assets = Class.extend({
 	},
 
 	copy: function(files) {
+		this.assets = {};
 		this.assetsToCopy.length = 0;
 		this.assetsToParse.length = 0;
 

@@ -59,7 +59,8 @@ var app = {
 
 	errorDivTouch: function(event) {
 		event.preventDefault();
-		this.reloadGame();
+		this.hideErrorDiv();
+		// this.reloadGame();
 	},
 
 	closeSocket: function() {
@@ -123,6 +124,18 @@ var app = {
 		this.changeScene();
 	},
 
+	toggleDebugBar: function() {
+		var debugDiv = document.getElementById('pandaDebug');
+		if (debugDiv) {
+			if (debugDiv.style.visibility === 'hidden') {
+				debugDiv.style.visibility = '';
+			}
+			else {
+				debugDiv.style.visibility = 'hidden';
+			}
+		}
+	},
+
 	reloadModule: function() {
 		var module = this.modulesToReload.pop();
 		if (!module) return this.modulesLoaded();
@@ -152,8 +165,9 @@ game.module('engine.editor')
 .body(function() {
 	game.Debug.inject({
 		_setText: function(text) {
-			text += ' SCREEN: ' + window.screen.width + 'x' + window.screen.height;
+			text += ' CANVAS: ' + game.system.width + 'x' + game.system.height;
 			text += ' WINDOW: ' + window.innerWidth + 'x' + window.innerHeight;
+			text += ' RATIO: ' + game.device.pixelRatio;
 			this.super(text);
 		}
 	});
@@ -207,6 +221,10 @@ document.addEventListener(eventName.touchend, function(event) {
     	app.reloadGame();
     }
 }, false);
+
+window.cordova = {
+	require: function() {}
+};
 
 app.init();
 

@@ -164,6 +164,11 @@ var editor = {
             bindKey: { mac: 'Ctrl-Tab', win: 'Ctrl-Tab' },
             exec: this.toggleCurrentTab.bind(this)
         });
+        this.editor.commands.addCommand({
+            name: 'toggleDebugBar',
+            bindKey: { mac: 'Ctrl-Shift-D', win: 'Ctrl-Shift-D' },
+            exec: this.toggleDebugBar.bind(this)
+        });
 
         this.editor.focus();
         this.onResize();
@@ -196,6 +201,10 @@ var editor = {
         $('#devices .list').html('');
         this.server.devices.length = 0;
         this.server.emit('reloadGame');
+    },
+
+    toggleDebugBar: function() {
+        this.server.emit('toggleDebugBar');
     },
 
     showTab: function(tab) {
