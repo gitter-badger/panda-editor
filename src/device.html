@@ -4,6 +4,7 @@ var app = {
 	connected: false,
 	connectCounter: 0,
 	modulesToReload: [],
+	moduleScripts: {},
 
 	init: function() {
 		// Parse device info from url
@@ -140,6 +141,11 @@ var app = {
 		var module = this.modulesToReload.pop();
 		if (!module) return this.modulesLoaded();
 
+		if (!game.modules[module].classes) {
+			console.error('Panda Engine ' + game.version + ' is not supported');
+			return;
+		}
+
 		// Delete module classes
 		for (var i = 0; i < game.modules[module].classes.length; i++) {
 			var className = game.modules[module].classes[i];
@@ -156,7 +162,11 @@ var app = {
 		script.src = path;
 		document.getElementsByTagName('head')[0].appendChild(script);
 
-		// TODO remove previous script from head
+		// Remove previous script from head
+		if (this.moduleScripts[module]) {
+			document.getElementsByTagName('head')[0].removeChild(this.moduleScripts[module]);
+		}
+		this.moduleScripts[module] = script;
 	}
 };
 
@@ -175,56 +185,49 @@ game.module('engine.editor')
 	game.onStart = function() {};
 });
 
-var previousConsole = window.console || {};
-window.console = {
-	log: function(msg) {
-		previousConsole.log && previousConsole.log(msg);
-		app.socket.emit('console', 'log', msg);
-	},
+(function() {
+	var _console = window.console || {};
+	window.console = {
+		log: function(msg) {
+			_console.log && _console.log(msg);
+			app.socket.emit('console', 'log', msg);
+		},
 
-	warn: function(msg) {
-		previousConsole.warn && previousConsole.warn(msg);
-		app.socket.emit('console', 'warn', msg);
-	},
+		warn: function(msg) {
+			_console.warn && _console.warn(msg);
+			app.socket.emit('console', 'warn', msg);
+		},
 
-	error: function(msg) {
-		previousConsole.error && previousConsole.error(msg);
-		app.socket.emit('console', 'error', msg);
+		error: function(msg) {
+			_console.error && _console.error(msg);
+			app.socket.emit('console', 'error', msg);
+		}
+	};
+
+	var touchCount = 0;
+	var eventName = { touchstart: 'touchstart', touchend: 'touchend' };
+
+	if (window.navigator.msPointerEnabled) {
+	    eventName.touchstart = 'MSPointerDown';
+	    eventName.touchend = 'MSPointerUp';
 	}
-};
 
-var currentTouches = {},
-    eventName = { touchstart: 'touchstart', touchend: 'touchend' };
+	document.addEventListener(eventName.touchstart, function(event) {
+	    touchCount = event.touches ? event.touches.length : 1;
+	}, false);
 
-if (window.navigator.msPointerEnabled) {
-    eventName = { touchstart: 'MSPointerDown', touchend: 'MSPointerUp' };
-}
-
-document.addEventListener(eventName.touchstart, function(evt) {
-    var touches = evt.touches || [evt],
-        touch;
-    for(var i = 0, l = touches.length; i < l; i++) {
-        touch = touches[i];
-        currentTouches[touch.identifier || touch.pointerId] = touch;
-    }
-}, false);
-
-document.addEventListener(eventName.touchend, function(event) {
-    var touchCount = Object.keys(currentTouches).length;
-    currentTouches = {};
-    if (touchCount === 3) {
-        event.preventDefault();
-        window.history.back(window.history.length);
-    }
-    if (touchCount === 4) {
-    	event.preventDefault();
-    	app.reloadGame();
-    }
-}, false);
-
-window.cordova = {
-	require: function() {}
-};
+	document.addEventListener(eventName.touchend, function(event) {
+	    if (touchCount === 3) {
+	        event.preventDefault();
+	        window.history.back(window.history.length);
+	    }
+	    if (touchCount === 4) {
+	    	event.preventDefault();
+	    	app.reloadGame();
+	    }
+	    touchCount = 0;
+	}, false);
+}());
 
 app.init();
 
