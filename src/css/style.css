@@ -42,7 +42,7 @@ img {
 
 ::-webkit-scrollbar-thumb {
 	background: rgba(255, 255, 255, 0.2);
-	border-radius: 5px;
+	border-radius: 3px;
 }
 
 #menu {
@@ -319,9 +319,9 @@ label {
 	overflow: auto;
 	background: #000;
 	border-top: 1px solid #333;
-	margin-left: 51px;
+	/*margin-left: 51px;*/
 	-webkit-user-select: text;
-	display: none;
+	/*display: none;*/
 }
 
 #console .content {

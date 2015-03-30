@@ -10,6 +10,7 @@ editor.Assets = Class.extend({
 	    'fnt'
 	],
 	count: 0,
+	changed: false,
 
 	add: function(filename, id) {
 	    if (filename.indexOf('.') === 0) return;
@@ -75,8 +76,9 @@ editor.Assets = Class.extend({
 				this.copyAssets(true);
 				return;
 			}
-		    editor.project.modules['game.assets'].changed = true;
+			this.changed = true;
 		    editor.saveChanges();
+		    this.changed = false;
 		    return;
 		}
 
@@ -181,7 +183,8 @@ editor.Assets = Class.extend({
 	    this.count--;
 	    $('#assets .header').html('Assets (' + this.count + ')');
 
-	    editor.project.modules['game.assets'].changed = true;
+	    this.changed = true;
 	    editor.saveChanges();
+	    this.changed = false;
 	}
 });

@@ -52,16 +52,14 @@ editor.Audio = Class.extend({
 	copyAudio: function(dontAdd) {
 	    var file = this.audioToCopy.pop();
 	    if (!file) {
-	    	this.saveChanges();
+	    	editor.assets.changed = true;
+	    	editor.saveChanges();
+	    	editor.assets.changed = false;
 	        return;
 	    }
 
 	    console.log('Copying audio ' + file.path);
 	    this.copyFile(file.path, editor.project.dir + '/media/' + this.audioFolder + '/' + file.name, this.audioCopied.bind(this, file.name, dontAdd));
-	},
-
-	saveChanges: function() {
-		editor.saveChanges(true);
 	},
 
 	copyFile: function(source, target, callback) {
@@ -128,6 +126,8 @@ editor.Audio = Class.extend({
 	    this.count--;
 	    $('#audio .header').html('Audio (' + this.count + ')');
 
-	    this.saveChanges();
+	    editor.assets.changed = true;
+	    editor.saveChanges();
+	    editor.assets.changed = false;
 	}
 });

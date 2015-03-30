@@ -9,6 +9,7 @@ window.console = {
 	get: function(args, lineNumber, filename) {
 		filename = filename.split('/');
 		filename = filename[filename.length - 1];
+		return args;
 		return filename + ':' + lineNumber + ' ' + args;
 	},
 

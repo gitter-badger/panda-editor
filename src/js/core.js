@@ -175,7 +175,7 @@ var editor = {
         this.preferences.apply();
     },
 
-    saveChanges: function(force) {
+    saveChanges: function(editor, obj, force) {
         if (!this.currentModule && this.currentClass === 'config') {
             this.project.config.save();
             return;
@@ -184,6 +184,7 @@ var editor = {
             this.preferences.save();
             return;
         }
+        console.log(force);
         if (this.project) this.project.save(force);
     },
 
@@ -220,7 +221,7 @@ var editor = {
 
     openBrowser: function() {
         if (!this.project) return;
-        this.gui.Shell.openExternal('http://localhost:' + this.preferences.data.port + '/dev.html?' + Date.now());
+        this.gui.Shell.openExternal('http://localhost:' + this.preferences.data.port);
     },
 
     updateEngine: function() {
@@ -542,7 +543,25 @@ var editor = {
         return module.classes[className];
     },
 
-    extendClass: function(toClass) {
+    extendClass: function(className) {
+        var classObj = this.getClassObjectForClassName(className);
+        if (!classObj) return;
+
+        var toClass = prompt('Extend class ' + className + ' from:', classObj.extend);
+        if (toClass !== '') {
+            toClass = this.stripClassName(toClass);
+            if (!toClass) return console.error('Invalid class name');
+        }
+        else toClass = 'Class';
+
+        classObj.extend = toClass;
+        classObj.changed = true;
+        this.project.updateModuleList();
+
+        this.editor.focus();
+
+        return;
+
         var fromClass = this.currentClass;
         if (!fromClass) return;
 
@@ -600,14 +619,28 @@ var editor = {
         while (classes.length > 0) {
             var nextClass = classes.shift();
 
-            // Check if class is extended
-            if (nextClass.extend === 'Class' || nextClass.extend === 'Scene') {
-                // Not extended
+            // Check if class is extending another class in module
+            var isExtended = false;
+            for (var className in module.classes) {
+                if (nextClass.extend === className) {
+                    isExtended = true;
+                    break;
+                }
+            }
+            for (var i = 0; i < classes.length; i++) {
+                if (nextClass.extend === classes[i].name) {
+                    isExtended = true;
+                    break;
+                }
+            }
+
+            if (!isExtended) {
+                // Not extending
                 module.classes[nextClass.name] = nextClass;
                 continue;
             }
 
-            // If extended, check if extended class already added
+            // If extending, check if extended class already added
             var classAdded = false;
             for (var className in module.classes) {
                 if (nextClass.extend === className) {

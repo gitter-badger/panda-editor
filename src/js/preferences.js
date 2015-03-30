@@ -6,7 +6,9 @@ editor.Preferences = Class.extend({
 	    theme: 'sunburst',
 	    develop: false,
 	    loadLastProject: false,
-	    reloadOnSave: true
+	    reloadOnSave: true,
+	    assetsModule: 'game.main',
+	    mainModule: 'game.main'
 	},
 
 	init: function() {

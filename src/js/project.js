@@ -70,10 +70,10 @@ editor.Project = Class.extend({
 	            data = data.replace(/\'/g, '');
 	            data = data.split(',');
 	            for (var i = 0; i < data.length; i++) {
+	            	this.modules[name].requires.push(data[i]);
 	                // Only include game modules
 	                if (data[i].indexOf('game.') !== 0) continue;
 	                this.modules[data[i]] = {};
-	                this.modules[name].requires.push(data[i]);
 	                requires++;
 	            }
 	        }
@@ -190,12 +190,16 @@ editor.Project = Class.extend({
 		this.save();
 	},
 
-	save: function(force) {
+	save: function() {
+		console.log('Saving project');
+
 	    this.filesToWrite.length = 0;
 	    for (var module in this.modules) {
 	        var needToSave = false;
-	        var firstModule = true;
-	        if (firstModule && force) needToSave = true;
+
+	        if (editor.assets.changed && module === editor.preferences.data.assetsModule) {
+	        	needToSave = true;
+	        }
 
 	        if (this.modules[module].changed) needToSave = true;
 
@@ -228,9 +232,7 @@ editor.Project = Class.extend({
 	            }
 	            data += '.body(function() {\n\n';
 
-	            // Save assets to first module
-	            if (firstModule) {
-	            	firstModule = false;
+	            if (module === editor.preferences.data.assetsModule) {
 	                for (var asset in editor.assets.assets) {
 	                    data += 'game.addAsset(\'' + asset + '\'';
 	                    if (asset !== editor.assets.assets[asset]) data += ', \'' + editor.assets.assets[asset] + '\'';
@@ -245,7 +247,7 @@ editor.Project = Class.extend({
 	                data += '\n';
 	            }
 
-	            editor.sortClasses(module);
+	            editor.sortClasses(this.modules[module]);
 	            for (var className in this.modules[module].classes) {
 	                var classObj = this.modules[module].classes[className];
 
@@ -276,7 +278,10 @@ editor.Project = Class.extend({
 	        }
 	    }
 
-	    if (this.filesToWrite.length === 0) return;
+	    if (this.filesToWrite.length === 0) {
+	    	console.warn('Nothing to save');
+	    	return;
+	    }
 	    this.writeFiles();
 	},
 

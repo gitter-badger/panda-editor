@@ -1,10 +1,10 @@
 editor.ErrorHandler = Class.extend({
-	receive: function(file, line, msg) {
+	receive: function(file, line, msg, device) {
 	    var module = 'game.' + file.split('.')[0];
 
 	    module = editor.project.modules[module];
 	    if (!module) {
-	    	console.error(file + ':' + line + ' ' + msg);
+	    	console.error(device.platform + ' ' + device.model + ': ' + file + ':' + line + ' ' + msg);
 	    	return;
 	    }
 
@@ -29,7 +29,7 @@ editor.ErrorHandler = Class.extend({
 	            break;
 	        }
 	    }
-	    console.error(file + ':' + line + ' ' + msg);
+	    console.error(device.platform + ' ' + device.model + ': ' + file + ':' + line + ' ' + msg);
 
 	    this.highlight(errorClass, errorClassLine);
 	},

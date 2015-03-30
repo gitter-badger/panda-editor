@@ -8,7 +8,8 @@ var app = {
 
 	init: function() {
 		// Parse device info from url
-		var params = window.location.href.split('?')[1].split('&');
+		var params = window.location.href.split('?') || [];
+		if (params[1]) params = params[1].split('&');
 		for (var i = 0; i < params.length; i++) {
 			var info = params[i].split('=');
 			if (info.length < 2) continue;
@@ -23,6 +24,33 @@ var app = {
 		window.onerror = this.onError.bind(this);
 	},
 
+	onConnect: function() {
+		this.connected = true;
+		this.socket.emit('register', {
+			platform: this.platform,
+			model: this.model
+		});
+		if (this.hadConnection) this.reloadGame();
+		else this.startPing();
+	},
+
+	startPing: function() {
+		this.pingTimer = setInterval(this.sendPing.bind(this), 2000);
+	},
+
+	sendPing: function() {
+		this.socket.emit('ping');
+	},
+
+	onDisconnect: function() {
+		this.connected = false;
+		this.hadConnection = true;
+	},
+
+	onCommand: function(command, param) {
+		if (this[command]) this[command](param);
+	},
+
 	onError: function(msg, file, line) {
 		var idx = file.lastIndexOf('/');
 		if (idx > -1) file = file.substr(idx + 1);
@@ -31,12 +59,13 @@ var app = {
 
 		this.showErrorDiv();
 
-		game.system.pause();
+		// game.system.pause();
 		return false;
 	},
 
 	showErrorDiv: function() {
 		if (this.errorDiv) return;
+		if (this.platform === 'Win32NT') return;
 
 		var errorDiv = document.createElement('div');
 		errorDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.25)';
@@ -66,24 +95,6 @@ var app = {
 
 	closeSocket: function() {
 		this.socket.close();
-	},
-
-	onCommand: function(command, param) {
-		if (this[command]) this[command](param);
-	},
-
-	onConnect: function() {
-		this.connected = true;
-		this.socket.emit('register', {
-			platform: this.platform,
-			model: this.model
-		});
-		if (this.hadConnection) this.reloadGame();
-	},
-
-	onDisconnect: function() {
-		this.connected = false;
-		this.hadConnection = true;
 	},
 
 	exitGame: function() {
@@ -174,10 +185,20 @@ game.module('engine.editor')
 .require('engine.debug')
 .body(function() {
 	game.Debug.inject({
+		connected: false,
+
 		_setText: function(text) {
+			if (app.connected && !this.connected) {
+				this.connected = true;
+				this.debugDiv.style.color = '#00ff00';
+			}
+			if (!app.connected && this.connected) {
+				this.connected = false;
+				this.debugDiv.style.color = '#ff0000';
+			}
 			text += ' CANVAS: ' + game.system.width + 'x' + game.system.height;
 			text += ' WINDOW: ' + window.innerWidth + 'x' + window.innerHeight;
-			text += ' RATIO: ' + game.device.pixelRatio;
+			text += ' WEBGL: ' + !!game.renderer.webGL;
 			this.super(text);
 		}
 	});
@@ -204,19 +225,25 @@ game.module('engine.editor')
 		}
 	};
 
-	var touchCount = 0;
-	var eventName = { touchstart: 'touchstart', touchend: 'touchend' };
+	var currentTouches = {},
+	    eventName = { touchstart: 'touchstart', touchend: 'touchend' };
 
 	if (window.navigator.msPointerEnabled) {
-	    eventName.touchstart = 'MSPointerDown';
-	    eventName.touchend = 'MSPointerUp';
+	    eventName = { touchstart: 'MSPointerDown', touchend: 'MSPointerUp' };
 	}
 
-	document.addEventListener(eventName.touchstart, function(event) {
-	    touchCount = event.touches ? event.touches.length : 1;
+	document.addEventListener(eventName.touchstart, function(evt) {
+	    var touches = evt.touches || [evt],
+	        touch;
+	    for(var i = 0, l = touches.length; i < l; i++) {
+	        touch = touches[i];
+	        currentTouches[touch.identifier || touch.pointerId] = touch;
+	    }
 	}, false);
 
-	document.addEventListener(eventName.touchend, function(event) {
+	document.addEventListener(eventName.touchend, function(evt) {
+	    var touchCount = Object.keys(currentTouches).length;
+	    currentTouches = {};
 	    if (touchCount === 3) {
 	        event.preventDefault();
 	        window.history.back(window.history.length);
@@ -225,7 +252,6 @@ game.module('engine.editor')
 	    	event.preventDefault();
 	    	app.reloadGame();
 	    }
-	    touchCount = 0;
 	}, false);
 }());
 

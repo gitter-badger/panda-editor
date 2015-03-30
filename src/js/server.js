@@ -2,6 +2,7 @@ editor.Server = Class.extend({
 	express: require('express'),
 	ipAddresses: [],
 	devices: [],
+	pingTimeout: 6000,
 
 	init: function() {
 		// Get ip addresses
@@ -43,6 +44,17 @@ editor.Server = Class.extend({
 		this.io = io;
 
 		this.restartServer(http);
+
+		this.pingTimer = setInterval(this.checkPing.bind(this), this.pingTimeout);
+	},
+
+	checkPing: function() {
+		var now = Date.now();
+		for (var i = this.devices.length - 1; i >= 0; i--) {
+			var device = this.devices[i];
+			var timeout = now - device.ping;
+			if (timeout >= this.pingTimeout) this.deviceDisconnected(device.socket);
+		}
 	},
 
 	emit: function(data, params) {
@@ -55,8 +67,27 @@ editor.Server = Class.extend({
 
 	    socket.on('disconnect', this.deviceDisconnected.bind(this, socket));
 	    socket.on('register', this.registerDevice.bind(this, socket));
-	    socket.on('errorMsg', editor.errorHandler.receive.bind(editor.errorHandler));
+	    socket.on('errorMsg', this.onError.bind(this, socket));
 	    socket.on('console', this.onConsole.bind(this, socket));
+	    socket.on('ping', this.onPing.bind(this, socket));
+	},
+
+	onError: function(socket, file, line, msg) {
+		for (var i = this.devices.length - 1; i >= 0; i--) {
+		    var device = this.devices[i];
+		    if (device.socket === socket) break;
+		}
+		editor.errorHandler.receive(file, line, msg, device);
+	},
+
+	onPing: function(socket) {
+		for (var i = this.devices.length - 1; i >= 0; i--) {
+		    var device = this.devices[i];
+		    if (device.socket === socket) {
+		        device.ping = Date.now();
+		        return;
+		    }
+		}
 	},
 
 	onConsole: function(socket, type, msg) {
@@ -82,10 +113,11 @@ editor.Server = Class.extend({
 	        data.model = 'browser';
 	    }
 	    if (data.platform === 'Win32NT') {
-	        data.platform = 'Window';
+	        data.platform = 'Windows';
 	        data.model = 'Phone';
 	    }
 	    data.socket = socket;
+	    data.ping = Date.now();
 	    socket.device = data;
 	    this.devices.push(data);
 	    this.updateDeviceList();
