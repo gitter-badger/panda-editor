@@ -11,6 +11,8 @@ editor.Config = Class.extend({
 		});
 
 		this.update(data);
+		if (!this.data.name) this.data.name = 'Untitled';
+		if (!this.data.version) this.data.version = '0.0.0';
 		this.rawData = data;
 	},
 

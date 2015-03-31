@@ -8,6 +8,6 @@ process.on('message', function(data) {
 	if (!panda[command]) return process.send('Command not found');
 
 	panda[command](dir, function(result) {
-		process.send(result);
+		process.send(result || false);
 	}, params);
 });

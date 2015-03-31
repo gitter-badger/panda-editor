@@ -877,6 +877,7 @@ var editor = {
 
         if (err) {
             console.error(err);
+            this.showTab('projects');
         }
         else {
             console.log('Created project ' + dir);

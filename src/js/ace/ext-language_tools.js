@@ -1910,7 +1910,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
                 this.commands.removeListener('afterExec', doLiveAutocomplete);
             }
         },
-        value: true
+        value: false
     },
     enableSnippets: {
         set: function(val) {

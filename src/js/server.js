@@ -116,6 +116,9 @@ editor.Server = Class.extend({
 	        data.platform = 'Windows';
 	        data.model = 'Phone';
 	    }
+	    if (data.model === 'x86_64') {
+	    	data.model = 'Simulator';
+	    }
 	    data.socket = socket;
 	    data.ping = Date.now();
 	    socket.device = data;
