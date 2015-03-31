@@ -1,6 +1,7 @@
 var info = require('./src/package.json');
 var NwBuilder = require('node-webkit-builder');
 var platforms = process.argv[2] ? [process.argv[2]] : ['osx', 'win'];
+var fs = require('fs');
 
 var package = {
     run: function() {
@@ -15,10 +16,9 @@ var package = {
 
     win: function() {
         console.log('Packaging win...');
-        var file_system = require('fs');
         var archiver = require('archiver');
 
-        var output = file_system.createWriteStream('release/panda.js-editor-' + info.version + '.zip');
+        var output = fs.createWriteStream('release/panda.js-editor-' + info.version + '.zip');
         var archive = archiver('zip');
 
         output.on('close', function () {
@@ -40,7 +40,11 @@ var package = {
     osx: function() {
         console.log('Packaging osx...');
         var appdmg = require('appdmg');
-        var ee = appdmg({ source: 'dmg.json', target: 'release/panda.js-editor-' + info.version + '.dmg' });
+        var target = 'release/panda.js-editor-' + info.version + '.dmg';
+
+        fs.unlinkSync(target);
+        
+        var ee = appdmg({ source: 'dmg.json', target: target });
 
         ee.on('finish', function () {
             console.log('Done');

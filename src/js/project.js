@@ -148,7 +148,7 @@ editor.Project = Class.extend({
 	                // console.log(strData);
 	                var className = args[0].value;
 	                if (expName === 'createScene') {
-	                    className = 'Scene' + className;
+	                    // className = 'Scene' + className;
 	                    classExtend = 'Scene';
 	                }
 
@@ -253,9 +253,9 @@ editor.Project = Class.extend({
 
 	                var funcName = 'createClass';
 	                var strClassName = className;
-	                if (className.indexOf('Scene') === 0) {
+	                if (classObj.extend === 'Scene') {
 	                    funcName = 'createScene';
-	                    strClassName = strClassName.replace('Scene', '');
+	                    // strClassName = strClassName.replace('Scene', '');
 	                }
 	                data += 'game.' + funcName + '(\'' + strClassName + '\', ';
 	                if (classObj.extend !== 'Class' && classObj.extend !== 'Scene') {
