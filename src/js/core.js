@@ -103,7 +103,12 @@ var editor = {
 
         this.editor = ace.edit('editor');
         this.defaultSession = this.editor.getSession();
-        
+
+        this.editor.commands.addCommand({
+            name: 'lintCode',
+            bindKey: { mac: 'Cmd-Shift-H', win: 'Ctrl-Shift-H' },
+            exec: this.lintCode.bind(this)
+        });
         this.editor.commands.addCommand({
             name: 'saveChanges',
             bindKey: { mac: 'Cmd-S', win: 'Ctrl-S' },
@@ -173,6 +178,40 @@ var editor = {
         this.editor.focus();
         this.onResize();
         this.preferences.apply();
+    },
+
+    lintCode: function() {
+        var currentClass = this.currentClass;
+        var worker = this.child_process.fork('js/worker.js');
+        worker.on('message', this.lintComplete.bind(this, currentClass));
+        worker.on('exit', this.lintComplete.bind(this, null, null));
+        var data = this.editor.getSession().getValue();
+        data = '(' + data + ')';
+        worker.send(['lint', this.project.dir, [data, 'fix']]);
+        this.showLoader();
+    },
+
+    lintComplete: function(currentClass, output) {
+        this.hideLoader();
+
+        if (!output) {
+            console.error('Error linting.');
+            return;
+        }
+        if (this.currentClass !== currentClass) {
+            // Current class is changed, dont lint
+            console.error('File changed, aborting lint');
+            return;
+        }
+
+        // Remove fist char
+        output = output.substr(1);
+        // Remove last char
+        output = output.substr(0, output.length - 1);
+
+        var curPos = this.editor.getCursorPosition();
+        this.editor.getSession().setValue(output);
+        this.editor.gotoLine(curPos.row + 1, curPos.column);
     },
 
     saveChanges: function(editor, obj, force) {
@@ -909,5 +948,15 @@ var editor = {
 
     disconnectAll: function() {
         this.server.disconnectAll();
+    },
+
+    findClass: function(findClass) {
+        if (!this.project) return false;
+        for (var name in this.project.modules) {
+            for (var className in this.project.modules[name].classes) {
+                if (findClass === className) return this.project.modules[name].classes[className];
+            }
+        }
+        return false;
     }
 };
