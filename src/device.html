@@ -196,7 +196,8 @@ game.module('engine.editor')
 				this.connected = false;
 				this.debugDiv.style.color = '#ff0000';
 			}
-			text += ' CANVAS: ' + game.system.width + 'x' + game.system.height;
+			text += ' SYSTEM: ' + game.system.width + 'x' + game.system.height;
+			text += ' CANVAS: ' + game.system.canvasWidth + 'x' + game.system.canvasHeight;
 			text += ' WINDOW: ' + window.innerWidth + 'x' + window.innerHeight;
 			this.super(text);
 		}
