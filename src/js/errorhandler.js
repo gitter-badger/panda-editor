@@ -1,4 +1,6 @@
 editor.ErrorHandler = Class.extend({
+	errors: [],
+
 	receive: function(file, line, msg, device) {
 	    var module = 'game.' + file.split('.')[0];
 
@@ -46,17 +48,30 @@ editor.ErrorHandler = Class.extend({
 	    var errorLine = classObj.session.addMarker(new Range(lineNumber - 1, 0, lineNumber - 1, 144), 'errorHighlight', 'fullLine');
 
 	    classObj.errors[lineNumber] = errorLine;
+
+	    if (this.errors.indexOf(className) === -1) {
+	    	this.errors.push(className);
+	    }
 	},
 
 	clear: function(className) {
-	    var classObj = editor.getClassObjectForClassName(className);
-	    if (!classObj) return;
+		if (className) {
+			var classObj = editor.getClassObjectForClassName(className);
+			if (!classObj) return;
 
-	    for (var errorLine in classObj.errors) {
-	        classObj.session.removeMarker(classObj.errors[errorLine]);
-	        delete classObj.errors[errorLine];
-	    }
+			for (var errorLine in classObj.errors) {
+			    classObj.session.removeMarker(classObj.errors[errorLine]);
+			    delete classObj.errors[errorLine];
+			}
 
-	    $(classObj.div).removeClass('error');
+			$(classObj.div).removeClass('error');
+		}
+		else {
+			// Clear all errors
+			for (var i = 0; i < this.errors.length; i++) {
+				this.clear(this.errors[i]);
+			}
+			this.errors.length = 0;
+		}
 	}
 });

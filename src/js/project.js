@@ -193,6 +193,8 @@ editor.Project = Class.extend({
 	save: function() {
 		console.log('Saving project');
 
+		editor.errorHandler.clear();
+
 	    this.filesToWrite.length = 0;
 	    for (var module in this.modules) {
 	        var needToSave = false;
@@ -207,7 +209,6 @@ editor.Project = Class.extend({
 	            var classObj = this.modules[module].classes[className];
 
 	            if (classObj.changed) {
-	                editor.errorHandler.clear(className);
 	                needToSave = true;
 
 	                var value = classObj.session.getValue();

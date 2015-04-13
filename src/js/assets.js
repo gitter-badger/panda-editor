@@ -32,13 +32,15 @@ editor.Assets = Class.extend({
 	},
 
 	clear: function() {
+		this.assets = {};
+		this.assetsToCopy.length = 0;
+		this.assetsToParse.length = 0;
 		$('#assets .content .list').html('');
 		$('#assets .header').html('Assets');
 		this.count = 0;
 	},
 
 	copy: function(files) {
-		this.assets = {};
 		this.assetsToCopy.length = 0;
 		this.assetsToParse.length = 0;
 
