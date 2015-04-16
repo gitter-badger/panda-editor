@@ -158,11 +158,6 @@ regex /^\\s*/clas{0,2}/\n\
 	}).call(${1:class}.prototype);\n\
 	\n\
 	exports.${1:class} = ${1:class};\n\
-# \n\
-snippet for-\n\
-	for (var ${1:i} = ${2:Things}.length; ${1:i}--; ) {\n\
-		${0:${2:Things}[${1:i}];}\n\
-	}\n\
 # for (...) {...}\n\
 snippet for\n\
 	for (var ${1:i} = 0; $1 < ${2:Things}.length; $1++) {\n\

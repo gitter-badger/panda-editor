@@ -14710,15 +14710,15 @@ url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAJCAYAAADU6McMAAAAGXRF
 url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAA3CAYAAADNNiA5AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAACBJREFUeNpi+P//fz4TAwPDZxDxD5X4i5fLMEwJgAADAEPVDbjNw87ZAAAAAElFTkSuQmCC\");\
 }\
 .ace_tooltip {\
-background-color: #FFF;\
+background-color: #333;\
 background-image: -webkit-linear-gradient(top, transparent, rgba(0, 0, 0, 0.1));\
 background-image: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1));\
-border: 1px solid gray;\
+border: 0px solid gray;\
 border-radius: 1px;\
 box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);\
-color: black;\
+color: #fff;\
 max-width: 100%;\
-padding: 3px 4px;\
+padding: 5px;\
 position: fixed;\
 z-index: 999999;\
 -moz-box-sizing: border-box;\

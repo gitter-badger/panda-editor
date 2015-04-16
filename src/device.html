@@ -148,6 +148,16 @@ var app = {
 		}
 	},
 
+	toggleBounds: function() {
+		if (!game.Debug) return;
+		game.Debug.showBounds = !game.Debug.showBounds;
+	},
+
+	toggleHitAreas: function() {
+		if (!game.Debug) return;
+		game.Debug.showHitAreas = !game.Debug.showHitAreas;
+	},
+
 	reloadModule: function() {
 		var module = this.modulesToReload.pop();
 		if (!module) return this.modulesLoaded();

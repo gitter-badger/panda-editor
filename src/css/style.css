@@ -284,6 +284,19 @@ label {
 	position: relative;
 }
 
+hr {
+	border-style: none;
+	border-bottom: 1px solid #999;
+}
+
+.ace_autocomplete {
+	font-family: Menlo;
+}
+
+.ace_tooltip {
+	font-family: Menlo;
+}
+
 #editor .errorHighlight{
   	position: absolute;
   	z-index: 20;

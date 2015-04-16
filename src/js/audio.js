@@ -116,7 +116,7 @@ editor.Audio = Class.extend({
 	    this.audio[filename] = newId;
 	    $(div).html(newId);
 
-	    this.saveChanges();
+	    editor.saveChanges();
 	},
 
 	remove: function(filename, div) {

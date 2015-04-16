@@ -8,7 +8,8 @@ editor.Preferences = Class.extend({
 	    loadLastProject: false,
 	    reloadOnSave: true,
 	    assetsModule: 'game.main',
-	    mainModule: 'game.main'
+	    mainModule: 'game.main',
+	    showConsole: false
 	},
 
 	init: function() {
@@ -20,7 +21,9 @@ editor.Preferences = Class.extend({
 	    this.prevData = this.data;
 	    this.rawData = JSON.stringify(this.data, null, '    ');
 
-	    // this.apply(true);
+	    for (var name in this.data) {
+	    	this[name] = this.data[name];
+	    }
 	},
 
 	apply: function() {

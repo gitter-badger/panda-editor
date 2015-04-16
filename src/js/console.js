@@ -62,5 +62,7 @@ window.onerror = function(msg, file, line) {
 };
 
 $(window).on('keydown', function(event) {
-    if (event.keyCode === 27 && event.ctrlKey) $('#console').toggle();
+    if (event.keyCode === 27 && event.ctrlKey) {
+    	editor.toggleConsole();
+    }
 });

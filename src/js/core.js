@@ -2,7 +2,6 @@
 // Add/remove module
 // Asset subfolders
 // Loading audio files
-// Extend from core class ***
 
 var editor = {
     info: require('./package.json'),
@@ -26,8 +25,10 @@ var editor = {
         this.initWindow();
         this.menu = new this.Menu();
 
-        if (this.preferences.data.loadLastProject) this.projects.loadLast();
+        if (this.preferences.loadLastProject) this.projects.loadLast();
         else this.showTab('projects');
+
+        if (this.preferences.showConsole) $('#console').show();
     },
 
     initEvents: function() {
@@ -223,8 +224,13 @@ var editor = {
             this.preferences.save();
             return;
         }
-        console.log(force);
+        
         if (this.project) this.project.save(force);
+    },
+
+    toggleConsole: function() {
+        $('#console').toggle();
+        this.onResize();
     },
 
     toggleCurrentTab: function() {
@@ -237,6 +243,7 @@ var editor = {
     },
 
     reloadAll: function() {
+        if (!this.server) return;
         console.log('Reloaded all devices');
         $('#devices .list').html('');
         this.server.devices.length = 0;
@@ -244,7 +251,18 @@ var editor = {
     },
 
     toggleDebugBar: function() {
+        if (!this.server) return;
         this.server.emit('toggleDebugBar');
+    },
+
+    toggleBounds: function() {
+        if (!this.server) return;
+        this.server.emit('toggleBounds');
+    },
+
+    toggleHitAreas: function() {
+        if (!this.server) return;
+        this.server.emit('toggleHitAreas');
     },
 
     showTab: function(tab) {
@@ -379,6 +397,13 @@ var editor = {
         editorWidth -= $('#menu').outerWidth(true);
 
         $('#editor').width(editorWidth);
+
+        var tabHeight = window.innerHeight;
+        if ($('#console').is(':visible')) {
+            tabHeight -= $('#console').height();
+        }
+        $('.tab').height(tabHeight);
+        $('#editor').height(tabHeight);
 
         if (this.editor) this.editor.resize();
     },

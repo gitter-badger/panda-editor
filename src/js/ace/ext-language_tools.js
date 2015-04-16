@@ -1165,7 +1165,7 @@ var AcePopup = function(parentNode) {
 
 dom.importCssString("\
 .ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\
-    background-color: #CAD6FA;\
+    background-color: #666;\
     z-index: 1;\
 }\
 .ace_editor.ace_autocomplete .ace_line-hover {\
@@ -1197,9 +1197,9 @@ dom.importCssString("\
 .ace_editor.ace_autocomplete {\
     width: 280px;\
     z-index: 200000;\
-    background: #fbfbfb;\
-    color: #444;\
-    border: 1px lightgray solid;\
+    background: #333;\
+    color: #fff;\
+    border: 0px lightgray solid;\
     position: fixed;\
     box-shadow: 2px 3px 5px rgba(0,0,0,.2);\
     line-height: 1.4;\
@@ -1720,6 +1720,8 @@ define("ace/autocomplete/text_completer",["require","exports","module","ace/rang
 
         words.forEach(function(word, idx) {
             if (!word || word === currentWord) return;
+            // Skip numbers
+            if (!isNaN(parseInt(word))) return;
 
             var distance = Math.abs(prefixPos - idx);
             var score = words.length - distance;
@@ -1910,7 +1912,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
                 this.commands.removeListener('afterExec', doLiveAutocomplete);
             }
         },
-        value: false
+        value: true
     },
     enableSnippets: {
         set: function(val) {
