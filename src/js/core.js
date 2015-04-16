@@ -265,6 +265,11 @@ var editor = {
         this.server.emit('toggleHitAreas');
     },
 
+    toggleBodies: function() {
+        if (!this.server) return;
+        this.server.emit('toggleBodies');
+    },
+
     showTab: function(tab) {
         $('.item.current').removeClass('current');
         $('.item[data-target="' + tab + '"]').addClass('current');

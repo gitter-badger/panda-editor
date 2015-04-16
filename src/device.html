@@ -158,6 +158,11 @@ var app = {
 		game.Debug.showHitAreas = !game.Debug.showHitAreas;
 	},
 
+	toggleBodies: function() {
+		if (!game.Debug) return;
+		game.Debug.showBodies = !game.Debug.showBodies;
+	},
+
 	reloadModule: function() {
 		var module = this.modulesToReload.pop();
 		if (!module) return this.modulesLoaded();

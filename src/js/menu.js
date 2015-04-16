@@ -21,6 +21,8 @@ editor.Menu = Class.extend({
 	    view.append(new editor.gui.MenuItem({ label: 'Debug bar', click: editor.toggleDebugBar.bind(editor) }));
 	    view.append(new editor.gui.MenuItem({ label: 'Bounds', click: editor.toggleBounds.bind(editor) }));
 	    view.append(new editor.gui.MenuItem({ label: 'Hit areas', click: editor.toggleHitAreas.bind(editor) }));
+	    view.append(new editor.gui.MenuItem({ label: 'Bodies', click: editor.toggleBodies.bind(editor) }));
+	    
 	    // // Project menu
 	    // var project = new editor.gui.Menu();
 	    // project.append(new editor.gui.MenuItem({ label: 'Create new project', click: editor.createProject.bind(editor) }));
