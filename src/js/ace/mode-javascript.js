@@ -71,7 +71,7 @@ var JavaScriptHighlightRules = function(options) {
             "Analytics|Animation|Audio|BaseTexture|BitmapText|Body|Camera|Circle|Class|CollisionSolver|Container|Core|Debug|DebugDraw|DisplayObject|Emitter|Graphics|Keyboard|Loader|Particle|Point|Pool|Rectangle|RenderTexture|Scene|Spine|SpriteSheet|Sprite|Storage|System|Text|Texture|TilingSprite|Timer|Tween|TweenEngine|TweenGroup|Vector|Video|World",
         "method":
             "backgroundColor|anchorCenter|" +
-            "scale|addAsset|addAttributes|addAudio|createClass|createScene|fullscreen|getJSON|getTexture|removeAsset|addEmitter|removeEmitter|removeObject|removeTimer",
+            "addTo|scale|addAsset|addAttributes|addAudio|createClass|createScene|fullscreen|getJSON|getTexture|removeAsset|addEmitter|removeEmitter|removeObject|removeTimer",
         "keyword":
             "Math|const|import|get|set|" +
             "break|case|catch|continue|default|delete|do|else|finally|for|function|" +

@@ -29,6 +29,8 @@ var editor = {
         else this.showTab('projects');
 
         if (this.preferences.showConsole) $('#console').show();
+
+        this.onResize();
     },
 
     initEvents: function() {
@@ -403,12 +405,15 @@ var editor = {
 
         $('#editor').width(editorWidth);
 
+        var loaderPos = 9;
         var tabHeight = window.innerHeight;
         if ($('#console').is(':visible')) {
             tabHeight -= $('#console').height();
+            loaderPos += $('#console').height();
         }
         $('.tab').height(tabHeight);
         $('#editor').height(tabHeight);
+        $('#loader').css('bottom', loaderPos + 'px');
 
         if (this.editor) this.editor.resize();
     },

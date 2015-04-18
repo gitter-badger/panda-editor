@@ -11,8 +11,6 @@ editor.Config = Class.extend({
 		});
 
 		this.update(data);
-		if (!this.data.name) this.data.name = 'Untitled';
-		if (!this.data.version) this.data.version = '0.0.0';
 		this.rawData = data;
 	},
 
@@ -26,6 +24,8 @@ editor.Config = Class.extend({
 	update: function(rawData) {
 		eval(rawData);
 		this.data = pandaConfig;
+		if (!this.data.name) this.data.name = 'Untitled';
+		if (!this.data.version) this.data.version = '0.0.0';
 		delete pandaConfig;
 	},
 
