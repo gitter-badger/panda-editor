@@ -162,11 +162,11 @@ var editor = {
             bindKey: { mac: 'Cmd-Shift-R', win: 'Ctrl-Shift-R' },
             exec: this.reloadAll.bind(this)
         });
-        this.editor.commands.addCommand({
-            name: 'changeScene',
-            bindKey: { mac: 'Cmd-R', win: 'Ctrl-R' },
-            exec: this.changeScene.bind(this)
-        });
+        // this.editor.commands.addCommand({
+        //     name: 'changeScene',
+        //     bindKey: { mac: 'Cmd-R', win: 'Ctrl-R' },
+        //     exec: this.changeScene.bind(this)
+        // });
         this.editor.commands.addCommand({
             name: 'toggleTabs',
             bindKey: { mac: 'Ctrl-Tab', win: 'Ctrl-Tab' },
