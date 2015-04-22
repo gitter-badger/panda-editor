@@ -1,11 +1,13 @@
 var info = require('./src/package.json');
 var NwBuilder = require('node-webkit-builder');
-var platforms = process.argv[2] ? [process.argv[2]] : ['osx', 'win'];
+var platform = process.argv[2] || 'osx';
 var fs = require('fs');
 
 var package = {
+    platforms: [],
+
     run: function() {
-        var platform = platforms.pop();
+        var platform = this.platforms.pop();
         if (!platform) {
             console.log('All done');
             return;
@@ -18,7 +20,7 @@ var package = {
         console.log('Packaging win...');
         var archiver = require('archiver');
 
-        var output = fs.createWriteStream('release/panda.js-editor-' + info.version + '.zip');
+        var output = fs.createWriteStream('release/panda.js-editor-win-' + info.version + '.zip');
         var archive = archiver('zip');
 
         output.on('close', function () {
@@ -40,9 +42,9 @@ var package = {
     osx: function() {
         console.log('Packaging osx...');
         var appdmg = require('appdmg');
-        var target = 'release/panda.js-editor-' + info.version + '.dmg';
+        var target = 'release/panda.js-editor-osx-' + info.version + '.dmg';
 
-        fs.unlinkSync(target);
+        if (fs.existsSync(target)) fs.unlinkSync(target);
         
         var ee = appdmg({ source: 'dmg.json', target: target });
 
@@ -64,18 +66,24 @@ var config = {
     buildDir: './build'
 };
 
-if (platforms.indexOf('win') === -1) {
+if (platform === 'osx') {
+    package.platforms.push('osx');
     config.platforms = ['osx64'];
     delete config.winIco;
 }
-if (platforms.indexOf('osx') === -1) {
+else if (platform === 'win') {
+    package.platforms.push('win');
     config.platforms = ['win64'];
     delete config.macIcns;
+}
+else if (platform === 'all') {
+    package.platforms.push('win');
+    package.platforms.push('osx');
 }
 
 var nw = new NwBuilder(config);
 
-console.log('Building for ' + platforms.join(', ') + '...');
+console.log('Building for ' + platform + '...');
 
 nw.build(function(err) {
 	if (err) console.log(err);
