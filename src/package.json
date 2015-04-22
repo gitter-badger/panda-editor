@@ -14,6 +14,8 @@
     "icon": "./res/icons/panda.ico"
   },
   "dependencies": {
+    "express": "^4.12.3",
+    "opener": "^1.4.1",
     "pandajs": "latest"
   },
   "platformOverrides": {
