@@ -55,8 +55,22 @@ var editor = {
         this.window = this.gui.Window.get();
         this.window.on('close', function() {
             var sure = confirm('Do you want to close editor?');
-            if (sure) this.close(true);
+            if (sure) {
+                editor.storage.set('windowWidth', editor.window.width);
+                editor.storage.set('windowHeight', editor.window.height);
+                editor.storage.set('windowX', editor.window.x);
+                editor.storage.set('windowY', editor.window.y);
+                this.close(true);
+            }
         });
+        this.window.width = this.storage.get('windowWidth') || this.info.window.width;
+        this.window.height = this.storage.get('windowHeight') || this.info.window.height;
+        var x = this.storage.get('windowX');
+        var y = this.storage.get('windowY');
+        if (x && y) {
+            this.window.x = x;
+            this.window.y = y;
+        }
         this.window.show();
     },
 
