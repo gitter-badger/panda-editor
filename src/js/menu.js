@@ -17,6 +17,7 @@ editor.Menu = Class.extend({
 	    devices.append(new editor.gui.MenuItem({ label: 'Reload all', click: editor.reloadAll.bind(editor) }));
 
 	    var view = new editor.gui.Menu();
+	    view.append(new editor.gui.MenuItem({ label: 'Sidebar', click: editor.toggleCurrentTab.bind(editor) }));
 	    view.append(new editor.gui.MenuItem({ label: 'Console', click: editor.toggleConsole.bind(editor) }));
 	    view.append(new editor.gui.MenuItem({ label: 'Debug bar', click: editor.toggleDebugBar.bind(editor) }));
 	    view.append(new editor.gui.MenuItem({ label: 'Bounds', click: editor.toggleBounds.bind(editor) }));
